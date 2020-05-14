@@ -40,7 +40,7 @@
 #include "libavutil/parseutils.h"
 #include "libavutil/pixdesc.h"
 #include "libavutil/pixfmt.h"
-
+#include "android_log.h"
 #define DEFAULT_PASS_LOGFILENAME_PREFIX "ffmpeg2pass"
 
 #define MATCH_PER_STREAM_OPT(name, type, outvar, fmtctx, st)\
@@ -902,6 +902,7 @@ static void assert_file_overwrite(const char *filename)
 {
     if (file_overwrite && no_file_overwrite) {
         fprintf(stderr, "Error, both -y and -n supplied. Exiting.\n");
+        LOGI("Error, both -y and -n supplied. Exiting.\n");
         exit_program(1);
     }
 
@@ -910,23 +911,25 @@ static void assert_file_overwrite(const char *filename)
         if (proto_name && !strcmp(proto_name, "file") && avio_check(filename, 0) == 0) {
             if (stdin_interaction && !no_file_overwrite) {
                 fprintf(stderr,"File '%s' already exists. Overwrite ? [y/N] ", filename);
+                LOGI("File '%s' already exists. Overwrite ? [y/N] ",filename);
                 fflush(stderr);
                 term_exit();
                 signal(SIGINT, SIG_DFL);
                 if (!read_yesno()) {
                     av_log(NULL, AV_LOG_FATAL, "Not overwriting - exiting\n");
+                    LOGI("Not overwriting - exiting\n");
                     exit_program(1);
                 }
                 term_init();
             }
             else {
                 av_log(NULL, AV_LOG_FATAL, "File '%s' already exists. Exiting.\n", filename);
+                LOGI( "File '%s' already exists. Exiting.\n", filename);
                 exit_program(1);
             }
         }
     }
 }
-
 static void dump_attachment(AVStream *st, const char *filename)
 {
     int ret;

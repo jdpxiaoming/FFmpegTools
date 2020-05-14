@@ -100,11 +100,13 @@
 #endif
 
 #include <time.h>
-
+#include <ffmpeg_cmd.h>
 #include "ffmpeg.h"
 #include "cmdutils.h"
 
 #include "libavutil/avassert.h"
+
+#include "android_log.h"
 
 const char program_name[] = "ffmpeg";
 const int program_birth_year = 2000;
@@ -625,6 +627,18 @@ static void ffmpeg_cleanup(int ret)
     }
     term_exit();
     ffmpeg_exited = 1;
+
+
+    filtergraphs = NULL;
+    nb_filtergraphs = 0;
+    output_files = NULL;
+    nb_output_files = 0;
+    output_streams = NULL;
+    nb_output_streams = 0;
+    input_files = NULL;
+    nb_input_files = 0;
+    input_streams = NULL;
+    nb_input_streams = 0;
 }
 
 void remove_avoptions(AVDictionary **a, AVDictionary *b)
@@ -1650,6 +1664,7 @@ static void print_report(int is_last_report, int64_t timer_start, int64_t cur_ti
     const char *hours_sign;
     int ret;
     float t;
+    float mss;
 
     if (!print_stats && !is_last_report && !progress_avio)
         return;
@@ -1751,6 +1766,7 @@ static void print_report(int is_last_report, int64_t timer_start, int64_t cur_ti
 
     secs = FFABS(pts) / AV_TIME_BASE;
     us = FFABS(pts) % AV_TIME_BASE;
+    mss = secs + ((float) us / AV_TIME_BASE);
     mins = secs / 60;
     secs %= 60;
     hours = mins / 60;
@@ -1768,7 +1784,7 @@ static void print_report(int is_last_report, int64_t timer_start, int64_t cur_ti
         av_bprintf(&buf, "%s%02d:%02d:%02d.%02d ",
                    hours_sign, hours, mins, secs, (100 * us) / AV_TIME_BASE);
     }
-
+    ffmpeg_progress(mss);
     if (bitrate < 0) {
         av_bprintf(&buf, "bitrate=N/A");
         av_bprintf(&buf_script, "bitrate=N/A\n");
@@ -4738,6 +4754,8 @@ static int transcode(void)
             }
         }
     }
+
+
     return ret;
 }
 
@@ -4782,7 +4800,8 @@ static void log_callback_null(void *ptr, int level, const char *fmt, va_list vl)
 {
 }
 
-int main(int argc, char **argv)
+//main函数入口.
+int ffmpeg_exec(int argc, char **argv)
 {
     int i, ret;
     int64_t ti;
@@ -4849,6 +4868,40 @@ int main(int argc, char **argv)
     if ((decode_error_stat[0] + decode_error_stat[1]) * max_error_rate < decode_error_stat[1])
         exit_program(69);
 
-    exit_program(received_nb_signals ? 255 : main_return_code);
+    //注释掉这行，否则完成后会闪退.
+//    exit_program(received_nb_signals ? 255 : main_return_code);
+
+    // return之前增加：
+    nb_filtergraphs = 0;
+    progress_avio = NULL;
+    input_streams = NULL;
+    nb_input_streams = 0;
+    input_files = NULL;
+    nb_input_files = 0;
+    output_streams = NULL;
+    nb_output_streams = 0;
+    output_files = NULL;
+    nb_output_files = 0;
+
     return main_return_code;
+}
+
+
+HWDevice *hw_device_get_by_name(const char *name) {
+}
+
+int hw_device_init_from_string(const char *arg, HWDevice **dev) {
+}
+
+void hw_device_free_all(void) {
+}
+
+int hw_device_setup_for_decode(InputStream *ist) {
+}
+
+int hw_device_setup_for_encode(OutputStream *ost) {
+}
+
+int hwaccel_decode_init(AVCodecContext *avctx){
+
 }

@@ -1,19 +1,18 @@
 #include <jni.h>
 //#include <string>
 
-extern "C"{
+//extern "C"{
 //引用ffmpeg.h头方法.
-//#include "ffmpeg.h"
-//#include "libavformat/avformat.h"
+#include "ffmpeg.h"
+#include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"
-}
+//}
 
 
-extern "C"
+//extern "C"
+/*
 JNIEXPORT jstring JNICALL
-Java_com_example_ffmpegtools_MainActivity_stringFromJNI(
-        JNIEnv* env,
-        jobject /* this */) {
+Java_com_example_ffmpegtools_MainActivity_stringFromJNI(JNIEnv* env, jclass type){
 
 //    hello = "Hello from C++";
     char str[25];
@@ -21,3 +20,4 @@ Java_com_example_ffmpegtools_MainActivity_stringFromJNI(
 
     return env->NewStringUTF(str);
 }
+*/
