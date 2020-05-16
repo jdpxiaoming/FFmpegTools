@@ -10,29 +10,25 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
 import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
 
-    // Used to load the 'native-lib' library on application startup.
-    static {
-        System.loadLibrary("ffmpeg-cmd");
-    }
-
     private String[] mPermission =  new String[]{Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE};
+
+    private Button mTestBtn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         // Example of a call to a native method
-        Button tv = findViewById(R.id.sample_text);
-        tv.setText("hello world");
+        mTestBtn = findViewById(R.id.sample_text);
+        mTestBtn.setText("转码视频");
 
-        tv.setOnClickListener(new View.OnClickListener() {
+        mTestBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 videoTransform(v);
@@ -69,10 +65,13 @@ public class MainActivity extends AppCompatActivity {
      * @param view
      */
     public void videoTransform(View view) {
-//        final String inputPath = getCacheDir().getAbsolutePath()+"/58.flv";
-//        final String outputPath = getCacheDir().getAbsolutePath()+"/59.mp4";
         final String inputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/58.flv";
         final String outputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/60.mp4";
+        File input =new File(inputPath);
+        if(!input.exists()){
+            Toast.makeText(MainActivity.this, "/Download/58.flv not found!", Toast.LENGTH_LONG).show();
+            return;
+        }
         File output =new File(outputPath);
         if(output.exists()){
             output.delete();
@@ -85,20 +84,33 @@ public class MainActivity extends AppCompatActivity {
         commands[4] = "copy";
         commands[5] = "-acodec";
         commands[6] = "aac";
-//        commands[7] = "-movflags";
-//        commands[8] = " +faststart";
         commands[7] = outputPath;
+        FFmpegCmd.exec(commands, new FFmpegCmd.OnCmdExecListener() {
+            @Override
+            public void onSuccess() {
 
-        exec(commands.length,commands);
+            }
+
+            @Override
+            public void onFailure() {
+
+            }
+
+            @Override
+            public void onComplete() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this, "transcode successful!", Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onProgress(float progress) {
+
+            }
+        });
     }
 
-
-    /**
-     * A native method that is implemented by the 'native-lib' native library,
-     * which is packaged with this application.
-     */
-
-    public static native int exec(int argc, String[] argv);
-
-    public static native void exit();
 }

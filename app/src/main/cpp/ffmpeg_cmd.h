@@ -18,3 +18,4 @@ JNIEXPORT void JNICALL Java_com_example_ffmpegtools_MainActivity_exit(JNIEnv *, 
 #endif
 
 void ffmpeg_progress(float progress);
+void ffmpeg_complete(int errorCode);

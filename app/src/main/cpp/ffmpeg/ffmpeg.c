@@ -1647,6 +1647,12 @@ static void print_final_stats(int64_t total_size)
     }
 }
 
+/**
+ * 打印日志信息 .
+ * @param is_last_report
+ * @param timer_start
+ * @param cur_time
+ */
 static void print_report(int is_last_report, int64_t timer_start, int64_t cur_time)
 {
     AVBPrint buf, buf_script;
@@ -1784,7 +1790,7 @@ static void print_report(int is_last_report, int64_t timer_start, int64_t cur_ti
         av_bprintf(&buf, "%s%02d:%02d:%02d.%02d ",
                    hours_sign, hours, mins, secs, (100 * us) / AV_TIME_BASE);
     }
-//    ffmpeg_progress(mss);
+    ffmpeg_progress(mss);
     if (bitrate < 0) {
         av_bprintf(&buf, "bitrate=N/A");
         av_bprintf(&buf_script, "bitrate=N/A\n");
@@ -4651,6 +4657,7 @@ static int transcode(void)
         /* check if there's any stream where output is still needed */
         if (!need_output()) {
             av_log(NULL, AV_LOG_VERBOSE, "No more output streams to write to, finishing.\n");
+            ffmpeg_complete(1);
             break;
         }
 
@@ -4873,8 +4880,9 @@ int ffmpeg_exec(int argc, char **argv)
 
     current_time = ti = getutime();
     //eof 文件流结束了. 或者打开文件出错返回. -1
-    if (transcode() < 0)
+    if (transcode() < 0){
         exit_program(1);
+    }
     ti = getutime() - ti;
     if (do_benchmark) {
         av_log(NULL, AV_LOG_INFO, "bench: utime=%0.3fs\n", ti / 1000000.0);
