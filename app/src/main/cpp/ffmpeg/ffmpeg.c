@@ -1784,7 +1784,7 @@ static void print_report(int is_last_report, int64_t timer_start, int64_t cur_ti
         av_bprintf(&buf, "%s%02d:%02d:%02d.%02d ",
                    hours_sign, hours, mins, secs, (100 * us) / AV_TIME_BASE);
     }
-    ffmpeg_progress(mss);
+//    ffmpeg_progress(mss);
     if (bitrate < 0) {
         av_bprintf(&buf, "bitrate=N/A");
         av_bprintf(&buf_script, "bitrate=N/A\n");
@@ -4872,6 +4872,7 @@ int ffmpeg_exec(int argc, char **argv)
     }
 
     current_time = ti = getutime();
+    //eof 文件流结束了. 或者打开文件出错返回. -1
     if (transcode() < 0)
         exit_program(1);
     ti = getutime() - ti;

@@ -90,13 +90,11 @@ Java_com_example_ffmpegtools_MainActivity_exec(JNIEnv *env, jclass clazz, jint c
     ffmpeg_thread_run_cmd(cmdnum, argv);
     //注册ffmpeg命令执行完毕时的回调
     ffmpeg_thread_callback(ffmpeg_callback);
-
     free(strr);
     return 0;
-
      */
 
-//    int argc = (*env)->GetArrayLength(cmdline);
+    //test code  by poe.cai 2020/05/16 直接代码测试会结束退出.
     char *argv[cmdnum];
 
     int i;
