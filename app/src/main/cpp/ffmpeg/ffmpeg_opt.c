@@ -492,7 +492,7 @@ static int opt_init_hw_device(void *optctx, const char *opt, const char *arg)
         printf("\n");
         exit_program(0);
     } else {
-        return hw_device_init_from_string(arg, NULL);
+        return 1;//hw_device_init_from_string(arg, NULL);
     }
 }
 
@@ -502,7 +502,7 @@ static int opt_filter_hw_device(void *optctx, const char *opt, const char *arg)
         av_log(NULL, AV_LOG_ERROR, "Only one filter device can be used.\n");
         return AVERROR(EINVAL);
     }
-    filter_hw_device = hw_device_get_by_name(arg);
+    filter_hw_device = NULL;//hw_device_get_by_name(arg);
     if (!filter_hw_device) {
         av_log(NULL, AV_LOG_ERROR, "Invalid filter device %s.\n", arg);
         return AVERROR(EINVAL);
@@ -3246,6 +3246,7 @@ int ffmpeg_parse_options(int argc, char **argv)
     ret = open_files(&octx.groups[GROUP_INFILE], "input", open_input_file);
     if (ret < 0) {
         av_log(NULL, AV_LOG_FATAL, "Error opening input files: ");
+        LOGE("Error opening input files: ");
         goto fail;
     }
 
@@ -3260,6 +3261,7 @@ int ffmpeg_parse_options(int argc, char **argv)
     ret = open_files(&octx.groups[GROUP_OUTFILE], "output", open_output_file);
     if (ret < 0) {
         av_log(NULL, AV_LOG_FATAL, "Error opening output files: ");
+        LOGE("Error opening output files: ");
         goto fail;
     }
 

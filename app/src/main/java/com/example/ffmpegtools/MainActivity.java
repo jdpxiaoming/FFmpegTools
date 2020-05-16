@@ -49,8 +49,8 @@ public class MainActivity extends AppCompatActivity {
      */
     public void videoTransform(View view) {
         final String inputPath = getCacheDir().getAbsolutePath()+"/58.flv";
-        final String outputPath = getCacheDir().getAbsolutePath()+"/59.mp4";
-//        final String outputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/60.mp4";
+//        final String outputPath = getCacheDir().getAbsolutePath()+"/59.mp4";
+        final String outputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/60.mp4";
         File output =new File(outputPath);
         if(output.exists()){
             output.delete();
@@ -63,8 +63,11 @@ public class MainActivity extends AppCompatActivity {
         commands[4] = "copy";
         commands[5] = "-acodec";
         commands[6] = "aac";
+//        commands[7] = "-movflags";
+//        commands[8] = " +faststart";
         commands[7] = outputPath;
-        exec(8,commands);
+
+        exec(commands.length,commands);
     }
 
 

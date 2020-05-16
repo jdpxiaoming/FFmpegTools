@@ -2828,7 +2828,7 @@ static enum AVPixelFormat get_format(AVCodecContext *s, const enum AVPixelFormat
                 continue;
             }
 
-            ret = hwaccel_decode_init(s);
+            /*ret = hwaccel_decode_init(s);
             if (ret < 0) {
                 if (ist->hwaccel_id == HWACCEL_GENERIC) {
                     av_log(NULL, AV_LOG_FATAL,
@@ -2839,7 +2839,7 @@ static enum AVPixelFormat get_format(AVCodecContext *s, const enum AVPixelFormat
                     return AV_PIX_FMT_NONE;
                 }
                 continue;
-            }
+            }*/
         } else {
             const HWAccel *hwaccel = NULL;
             int i;
@@ -2929,13 +2929,13 @@ static int init_input_stream(int ist_index, char *error, int error_len)
         if (ist->st->disposition & AV_DISPOSITION_ATTACHED_PIC)
             av_dict_set(&ist->decoder_opts, "threads", "1", 0);
 
-        ret = hw_device_setup_for_decode(ist);
+        /*ret = hw_device_setup_for_decode(ist);
         if (ret < 0) {
             snprintf(error, error_len, "Device setup failed for "
                      "decoder on input stream #%d:%d : %s",
                      ist->file_index, ist->st->index, av_err2str(ret));
             return ret;
-        }
+        }*/
 
         if ((ret = avcodec_open2(ist->dec_ctx, codec, &ist->decoder_opts)) < 0) {
             if (ret == AVERROR_EXPERIMENTAL)
@@ -3477,13 +3477,13 @@ static int init_output_stream(OutputStream *ost, char *error, int error_len)
             if (!ost->enc_ctx->hw_frames_ctx)
                 return AVERROR(ENOMEM);
         } else {
-            ret = hw_device_setup_for_encode(ost);
+           /* ret = hw_device_setup_for_encode(ost);
             if (ret < 0) {
                 snprintf(error, error_len, "Device setup failed for "
                          "encoder on output stream #%d:%d : %s",
                      ost->file_index, ost->index, av_err2str(ret));
                 return ret;
-            }
+            }*/
         }
 
         if ((ret = avcodec_open2(ost->enc_ctx, codec, &ost->encoder_opts)) < 0) {
@@ -4723,7 +4723,7 @@ static int transcode(void)
     }
 
     av_buffer_unref(&hw_device_ctx);
-    hw_device_free_all();
+//    hw_device_free_all();
 
     /* finished ! */
     ret = 0;
@@ -4800,6 +4800,19 @@ static void log_callback_null(void *ptr, int level, const char *fmt, va_list vl)
 {
 }
 
+static void log_callback_test2(void *ptr, int level, const char *fmt, va_list vl)
+{
+    va_list vl2;
+    char *line = malloc(128 * sizeof(char));
+    static int print_prefix = 1;
+    va_copy(vl2, vl);
+    av_log_format_line(ptr, level, fmt, vl2, line, 128, &print_prefix);
+    va_end(vl2);
+    line[127] = '\0';
+    LOGE("%s", line);
+    free(line);
+}
+
 //main函数入口.
 int ffmpeg_exec(int argc, char **argv)
 {
@@ -4812,12 +4825,14 @@ int ffmpeg_exec(int argc, char **argv)
 
     setvbuf(stderr,NULL,_IONBF,0); /* win32 runtime needs this */
 
-    av_log_set_flags(AV_LOG_SKIP_REPEATED);
-    parse_loglevel(argc, argv, options);
+//    av_log_set_flags(AV_LOG_SKIP_REPEATED);
+//    parse_loglevel(argc, argv, options);
+    av_log_set_callback(log_callback_test2);
+
 
     if(argc>1 && !strcmp(argv[1], "-d")){
         run_as_daemon=1;
-        av_log_set_callback(log_callback_null);
+        av_log_set_callback(log_callback_test2);
         argc--;
         argv++;
     }
@@ -4887,6 +4902,7 @@ int ffmpeg_exec(int argc, char **argv)
 }
 
 
+/*
 HWDevice *hw_device_get_by_name(const char *name) {
 }
 
@@ -4904,4 +4920,4 @@ int hw_device_setup_for_encode(OutputStream *ost) {
 
 int hwaccel_decode_init(AVCodecContext *avctx){
 
-}
+}*/
