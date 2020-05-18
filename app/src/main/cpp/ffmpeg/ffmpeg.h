@@ -664,4 +664,5 @@ int hw_device_setup_for_encode(OutputStream *ost);
 
 int hwaccel_decode_init(AVCodecContext *avctx);
 int ffmpeg_exec(int argc, char **argv);
+void sigterm_handler(int sig);
 #endif /* FFTOOLS_FFMPEG_H */

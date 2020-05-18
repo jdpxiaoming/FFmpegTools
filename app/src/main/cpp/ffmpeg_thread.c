@@ -53,5 +53,7 @@ void ffmpeg_thread_exit(int ret){
  */
 void ffmpeg_thread_cancel(){
     void *ret=NULL;
+    LOGE("ffmpeg_thread_cancel: stop the main looper transcode with code :%d ",SIGINT);
+    sigterm_handler(SIGINT);
     pthread_join(ntid, &ret);
 }

@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
      */
     public void videoTransform(View view) {
         String inputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/58.flv";
-        String outputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/60.mp4";
+        String outputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/61.mp4";
 //        String outputPath = getCacheDir().getAbsolutePath()+"/60.mp4";
         File input =new File(inputPath);
         if(!input.exists()){
@@ -67,8 +67,8 @@ public class MainActivity extends AppCompatActivity {
         }
         //cmds for ffmpeg flv->mp4.
 //        String[] commands = FFmpegFactory.buildFlv2Mp4(inputPath,outputPath);
-//        inputPath ="rtsp://47.108.81.159:5555/rtsp/00716e06-e3bf-4a53-bd2e-96e3256f96f8";
-        inputPath = "http://116.62.177.94:8500/FLV_001410217220_e4f14c192079_20200518152432.flv";
+        inputPath ="rtsp://47.108.81.159:5555/rtsp/992949a2-4d57-439f-8afb-9d940a13d786";
+//        inputPath = "http://116.62.177.94:8500/FLV_001410217220_e4f14c192079_20200518152432.flv";
         String[] commands = FFmpegFactory.buildRtsp2Mp4(inputPath,outputPath);
 
         FFmpegCmd.exec(commands, new FFmpegCmd.OnCmdExecListener() {

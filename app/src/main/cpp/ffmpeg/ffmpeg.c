@@ -333,7 +333,7 @@ static atomic_int transcode_init_done = ATOMIC_VAR_INIT(0);
 static volatile int ffmpeg_exited = 0;
 static int main_return_code = 0;
 
-static void
+void
 sigterm_handler(int sig)
 {
     int ret;
