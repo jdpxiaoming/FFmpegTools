@@ -7,13 +7,27 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/sample_text"
+        android:id="@+id/btn_start"
         android:layout_width="100dp"
         android:layout_height="100dp"
-        android:text="Hello World!"
+        android:text="START"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@id/btn_stop"
+        app:layout_constraintTop_toTopOf="parent"
+        android:onClick="videoTransform"
+        />
+
+    <Button
+        android:id="@+id/btn_stop"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:text="STOP"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toRightOf="@id/btn_start"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        android:onClick="stopRun"
+        />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

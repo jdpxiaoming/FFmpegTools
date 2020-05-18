@@ -18,23 +18,11 @@ public class MainActivity extends AppCompatActivity {
     private String[] mPermission =  new String[]{Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE};
 
-    private Button mTestBtn;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         // Example of a call to a native method
-        mTestBtn = findViewById(R.id.sample_text);
-        mTestBtn.setText("转码视频");
-
-        mTestBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                videoTransform(v);
-            }
-        });
-
         if(ContextCompat.checkSelfPermission(this,Manifest.permission.WRITE_EXTERNAL_STORAGE)
         != PackageManager.PERMISSION_GRANTED||
                 ContextCompat.checkSelfPermission(this,Manifest.permission.READ_EXTERNAL_STORAGE)
@@ -65,8 +53,9 @@ public class MainActivity extends AppCompatActivity {
      * @param view
      */
     public void videoTransform(View view) {
-        final String inputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/58.flv";
-        final String outputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/60.mp4";
+        String inputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/58.flv";
+        String outputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/60.mp4";
+//        String outputPath = getCacheDir().getAbsolutePath()+"/60.mp4";
         File input =new File(inputPath);
         if(!input.exists()){
             Toast.makeText(MainActivity.this, "/Download/58.flv not found!", Toast.LENGTH_LONG).show();
@@ -76,15 +65,12 @@ public class MainActivity extends AppCompatActivity {
         if(output.exists()){
             output.delete();
         }
-        final String[] commands = new String[8];
-        commands[0] = "ffmpeg";
-        commands[1] = "-i";
-        commands[2] = inputPath;
-        commands[3] = "-vcodec";
-        commands[4] = "copy";
-        commands[5] = "-acodec";
-        commands[6] = "aac";
-        commands[7] = outputPath;
+        //cmds for ffmpeg flv->mp4.
+//        String[] commands = FFmpegFactory.buildFlv2Mp4(inputPath,outputPath);
+//        inputPath ="rtsp://47.108.81.159:5555/rtsp/00716e06-e3bf-4a53-bd2e-96e3256f96f8";
+        inputPath = "http://116.62.177.94:8500/FLV_001410217220_e4f14c192079_20200518152432.flv";
+        String[] commands = FFmpegFactory.buildRtsp2Mp4(inputPath,outputPath);
+
         FFmpegCmd.exec(commands, new FFmpegCmd.OnCmdExecListener() {
             @Override
             public void onSuccess() {
@@ -113,4 +99,11 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 停止命令.
+     * @param view
+     */
+    public void stopRun(View view) {
+        FFmpegCmd.exit();
+    }
 }
