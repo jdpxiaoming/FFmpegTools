@@ -55,3 +55,11 @@ String inputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"
         });
 
 ```
+
+
+
+### How to build your own ffmpeg.so ?
+- https://blog.lxfpoe.work/jekyll/update/2020/05/18/ffmpeg-so.html
+- https://blog.lxfpoe.work/jekyll/update/2020/05/18/ffmpeg-android.html
+
+
