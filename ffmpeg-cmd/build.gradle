@@ -7,8 +7,8 @@ android {
     defaultConfig {
         minSdkVersion MIN_SDK as int
         targetSdkVersion TRAGET_SDK as int  //29会无法读取内存卡.
-        versionCode 1
-        versionName "1.0"
+        versionCode VERSION_CODE as int
+        versionName VERSION_NAME
 
         externalNativeBuild {
             cmake {
@@ -48,3 +48,10 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 }
+
+
+//新建一个任务，这里只需要定义名字，下面的配置文件中会自动获取相关配置信息.
+uploadArchives {
+
+}
+apply from: new File(rootProject.projectDir, "tools/gradle-on-demand.gradle");
