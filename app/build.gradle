@@ -1,28 +1,20 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 29
-    buildToolsVersion "29.0.3"
+    compileSdkVersion COMPILE_TOOL_API as int
+    buildToolsVersion COMPILE_TOOL_API_VERSION
 
     defaultConfig {
         applicationId "com.example.ffmpegtools"
-        minSdkVersion 16
-        targetSdkVersion 28 //29会无法读取内存卡.
+        minSdkVersion MIN_SDK  as int
+        targetSdkVersion TRAGET_SDK as int //29会无法读取内存卡.
         versionCode 1
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-
-        externalNativeBuild {
-            cmake {
-                cppFlags ""
-                abiFilters /*"arm64-v8a",*/ "armeabi-v7a"
-            }
-        }
         ndk {
             abiFilters "armeabi-v7a"//"arm64-v8a"/*,"""armeabi-v7a"*/
         }
-
     }
 
     buildTypes {
@@ -30,17 +22,6 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
-    }
-
-    externalNativeBuild {
-        cmake {
-            path "src/main/cpp/CMakeLists.txt"
-            version "3.10.2"
-        }
-    }
-    ndkVersion = '20.0.5594570'
-    sourceSets.main {
-        jniLibs.srcDirs = ['libs']
     }
 }
 
@@ -52,4 +33,5 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+    implementation project(path: ':ffmpeg-cmd')
 }

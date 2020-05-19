@@ -11,8 +11,8 @@
 
 - example:
 
-```java
-String inputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/58.flv";
+```
+        String inputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/58.flv";
         String outputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/61.mp4";
         File input =new File(inputPath);
         if(!input.exists()){

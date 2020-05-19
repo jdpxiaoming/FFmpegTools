@@ -11,6 +11,10 @@ import android.os.Environment;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
+
+import com.jdpxiaoming.ffmpeg_cmd.FFmpegCmd;
+import com.jdpxiaoming.ffmpeg_cmd.FFmpegFactory;
+
 import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
@@ -65,8 +69,9 @@ public class MainActivity extends AppCompatActivity {
             output.delete();
         }
         //cmds for ffmpeg flv->mp4.
-        inputPath ="rtsp://47.108.81.159:5555/rtsp/992949a2-4d57-439f-8afb-9d940a13d786";
-        String[] commands = FFmpegFactory.buildRtsp2Mp4(inputPath,outputPath);
+        inputPath ="http://106.14.218.234:5581/rtsp/0d427a62-3f7b-44e6-b81f-e891ba79f994/live.flv";
+
+        String[] commands = FFmpegFactory.buildFlv2Mp4(inputPath,outputPath);
 
         FFmpegCmd.exec(commands, new FFmpegCmd.OnCmdExecListener() {
             @Override
