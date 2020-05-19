@@ -3,7 +3,7 @@ package com.jdpxiaoming.ffmpeg_cmd;
 import android.util.Log;
 
 /**
- * ffmpeg 工具类.
+ * ffmpeg tools.
  * @author jdpxiaoming 2020/05/16
  */
 public class FFmpegCmd
@@ -54,8 +54,8 @@ public class FFmpegCmd
     }
 
     /**
-     * 转码进度回调. .
-     * jni 会回调此方法 .
+     * transcode on progress .
+     * jni invoked this method .
      * @param progress
      */
     public static void onProgress(float progress)
@@ -69,8 +69,8 @@ public class FFmpegCmd
     }
 
     /**
-     * 动作结束回调，或者出错中断了 .
-     * jni调用java方法通知：任务完成 .
+     *  task finish invoked.
+     * jni invoked this method when task is finished.
      */
     public static void onComplete(){
         Log.i(TAG," onComplete ()# action done!");

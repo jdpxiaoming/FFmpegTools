@@ -9,6 +9,29 @@
 
 - [x] Dump RTSP live Stream to Android SDcard/xx.mp4 file .
 
+
+- 配置maven
+```
+buildscript {
+    
+    repositories {
+        maven {
+            url 'http://172.16.22.18:8081/repository/maven-public/'
+        }
+        google()
+        jcenter()
+        
+    }
+    
+    ...
+ }
+```
+
+- 引用
+```
+implementation 'com.jdpxiaoming.media:ffmpeg-cmd:0.0.1@aar'
+```
+
 - example:
 
 ```
