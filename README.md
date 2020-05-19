@@ -12,24 +12,19 @@
 
 - 配置maven
 ```
-buildscript {
+allprojects {
     
     repositories {
-        maven {
-            url 'http://172.16.22.18:8081/repository/maven-public/'
-        }
+        maven { url "https://dl.bintray.com/media/maven" }
         google()
         jcenter()
-        
     }
-    
-    ...
  }
 ```
 
 - 引用
 ```
-implementation 'com.jdpxiaoming.media:ffmpeg-cmd:0.0.1@aar'
+implementation 'com.github.jdpxiaoming:ffmpeg-cmd:0.0.1@aar'
 ```
 
 - example:

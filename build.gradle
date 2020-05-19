@@ -3,11 +3,9 @@
 buildscript {
     
     repositories {
-        maven {
-            url 'http://172.16.22.18:8081/repository/maven-public/'
-        }
-        google()
         jcenter()
+        google()
+
         
     }
     dependencies {
@@ -22,12 +20,10 @@ buildscript {
 
 allprojects {
     repositories {
-        maven {
-            url 'http://172.16.22.18:8081/repository/maven-public/'
-        }
-        google()
+        maven { url "https://dl.bintray.com/media/maven" }
         jcenter()
-        
+        google()
+
     }
 }
 
