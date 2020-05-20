@@ -14,6 +14,7 @@ import android.widget.Toast;
 
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegCmd;
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegFactory;
+import com.jdpxiaoming.ffmpeg_cmd.FFmpegUtil;
 
 import java.io.File;
 
@@ -57,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
      */
     public void videoTransform(View view) {
         String inputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/58.flv";
-        String outputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/61.mp4";
+        String outputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/62.mp4";
         File input =new File(inputPath);
         if(!input.exists()){
             Toast.makeText(MainActivity.this, "/Download/58.flv not found!", Toast.LENGTH_LONG).show();
@@ -68,13 +69,12 @@ public class MainActivity extends AppCompatActivity {
             output.delete();
         }
         //cmds for ffmpeg flv->mp4.
-        inputPath ="http://106.14.218.234:5581/rtsp/0d427a62-3f7b-44e6-b81f-e891ba79f994/live.flv";
-
+//        inputPath ="http://106.14.218.234:5581/rtsp/0d427a62-3f7b-44e6-b81f-e891ba79f994/live.flv";
         String[] commands = FFmpegFactory.buildFlv2Mp4(inputPath,outputPath);
 
-        FFmpegCmd.exec(commands, new FFmpegCmd.OnCmdExecListener() {
+        FFmpegUtil.getInstance().exec(commands, new FFmpegUtil.onCallBack() {
             @Override
-            public void onSuccess() {
+            public void onStart() {
 
             }
 
@@ -85,12 +85,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onComplete() {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(MainActivity.this, "transcode successful!", Toast.LENGTH_LONG).show();
-                    }
-                });
+                Toast.makeText(MainActivity.this, "transcode successful!", Toast.LENGTH_LONG).show();
             }
 
             @Override

@@ -17,12 +17,18 @@ public class FFmpegCmd
     }
 
     private static OnCmdExecListener sOnCmdExecListener;
-    private static long sDuration;
+    private static long sDuration = 0 ;
 
     public static native int exec(int argc, String[] argv);
 
     public static native void exit();
 
+    /**
+     * this method invoked child thread , please use {@link FFmpegUtil#exec(String[], FFmpegUtil.onCallBack)}
+     * @param cmds
+     * @param duration
+     * @param listener
+     */
     public static void exec(String[] cmds, long duration, OnCmdExecListener listener) {
         sOnCmdExecListener = listener;
         sDuration = duration;
@@ -30,6 +36,11 @@ public class FFmpegCmd
         exec(cmds.length, cmds);
     }
 
+    /**
+     * this method invoked child thread , please use {@link FFmpegUtil#exec(String[], FFmpegUtil.onCallBack)}
+     * @param cmds
+     * @param listener
+     */
     public static void exec(String[] cmds, OnCmdExecListener listener) {
         sOnCmdExecListener = listener;
         exec(cmds.length, cmds);
