@@ -51,10 +51,9 @@ dependencies {
 
 //加上这些
 tasks.withType(Javadoc) {
-    options{ encoding "UTF-8"
-        charSet 'UTF-8'
-        links "http://docs.oracle.com/javase/7/docs/api"
-    }
+    options.addStringOption('Xdoclint:none', '-quiet')
+    options.addStringOption('encoding', 'UTF-8')
+    options.addStringOption('charSet', 'UTF-8')
 }
 //新建一个任务，这里只需要定义名字，下面的配置文件中会自动获取相关配置信息.
 //上传maven或者私有库中.
