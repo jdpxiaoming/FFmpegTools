@@ -24,7 +24,7 @@ allprojects {
 
 - 引用
 ```
-implementation 'com.github.jdpxiaoming:ffmpeg-cmd:0.0.1@aar'
+implementation 'com.github.jdpxiaoming:ffmpeg-cmd:0.0.8r'
 ```
 
 - example:
@@ -45,30 +45,27 @@ implementation 'com.github.jdpxiaoming:ffmpeg-cmd:0.0.1@aar'
         inputPath ="rtsp://47.108.81.159:5555/rtsp/992949a2-4d57-439f-8afb-9d940a13d786";
         String[] commands = FFmpegFactory.buildRtsp2Mp4(inputPath,outputPath);
 
-        FFmpegCmd.exec(commands, new FFmpegCmd.OnCmdExecListener() {
+        FFmpegUtil.getInstance().enQueueTask(commands, 0,new FFmpegUtil.onCallBack() {
             @Override
-            public void onSuccess() {
+            public void onStart() {
 
+                Log.i(TAG," onStart2 # ");
             }
 
             @Override
             public void onFailure() {
-
+                Log.i(TAG," onFailure2 # ");
             }
 
             @Override
             public void onComplete() {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(MainActivity.this, "transcode successful!", Toast.LENGTH_LONG).show();
-                    }
-                });
+                Log.i(TAG," onComplete2 # ");
+                Toast.makeText(MainActivity.this, "transcode successful2!", Toast.LENGTH_LONG).show();
             }
 
             @Override
             public void onProgress(float progress) {
-
+                Log.i(TAG," onProgress2 # "+progress);
             }
         });
 

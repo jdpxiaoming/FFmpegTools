@@ -8,8 +8,8 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Environment;
+import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.Toast;
 
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegCmd;
@@ -19,6 +19,8 @@ import com.jdpxiaoming.ffmpeg_cmd.FFmpegUtil;
 import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final String TAG = "MainActivity";
 
     private String[] mPermission =  new String[]{Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE};
@@ -72,27 +74,63 @@ public class MainActivity extends AppCompatActivity {
 //        inputPath ="http://106.14.218.234:5581/rtsp/0d427a62-3f7b-44e6-b81f-e891ba79f994/live.flv";
         String[] commands = FFmpegFactory.buildFlv2Mp4(inputPath,outputPath);
 
-        FFmpegUtil.getInstance().exec(commands, new FFmpegUtil.onCallBack() {
+        FFmpegUtil.getInstance().enQueueTask(commands, 0,new FFmpegUtil.onCallBack() {
             @Override
             public void onStart() {
 
+                Log.i(TAG," onStart # ");
             }
 
             @Override
             public void onFailure() {
-
+                Log.i(TAG," onFailure # ");
             }
 
             @Override
             public void onComplete() {
+                Log.i(TAG," onComplete # ");
                 Toast.makeText(MainActivity.this, "transcode successful!", Toast.LENGTH_LONG).show();
             }
 
             @Override
             public void onProgress(float progress) {
-
+                Log.i(TAG," onProgress # "+progress);
             }
         });
+
+
+
+        outputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/63.mp4";
+        output =new File(outputPath);
+        if(output.exists()){
+            output.delete();
+        }
+        commands = FFmpegFactory.buildFlv2Mp4(inputPath,outputPath);
+
+        FFmpegUtil.getInstance().enQueueTask(commands, 0,new FFmpegUtil.onCallBack() {
+            @Override
+            public void onStart() {
+
+                Log.i(TAG," onStart2 # ");
+            }
+
+            @Override
+            public void onFailure() {
+                Log.i(TAG," onFailure2 # ");
+            }
+
+            @Override
+            public void onComplete() {
+                Log.i(TAG," onComplete2 # ");
+                Toast.makeText(MainActivity.this, "transcode successful2!", Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onProgress(float progress) {
+                Log.i(TAG," onProgress2 # "+progress);
+            }
+        });
+
     }
 
     /**
@@ -100,6 +138,6 @@ public class MainActivity extends AppCompatActivity {
      * @param view
      */
     public void stopRun(View view) {
-        FFmpegCmd.exit();
+        FFmpegUtil.getInstance().stopTask();
     }
 }

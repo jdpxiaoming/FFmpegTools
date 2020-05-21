@@ -20,6 +20,10 @@ buildscript {
 
 allprojects {
     repositories {
+        mavenCentral()
+       /* maven {
+            url 'https://dl.bintray.com/caoustc/maven/'
+        }*/
         maven { url "https://dl.bintray.com/media/maven" }
         jcenter()
         google()

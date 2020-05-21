@@ -1,7 +1,5 @@
 package com.jdpxiaoming.ffmpeg_cmd;
 
-import android.util.Log;
-
 /**
  * ffmpeg tools.
  * @author jdpxiaoming 2020/05/16
@@ -49,7 +47,7 @@ public class FFmpegCmd
 
     public static void onExecuted(int ret)
     {
-        Log.i(TAG," onExecuted # "+ret);
+        FLog.i(TAG," onExecuted # "+ret);
         if (sOnCmdExecListener != null)
         {
             if (ret == 0)
@@ -71,10 +69,12 @@ public class FFmpegCmd
      */
     public static void onProgress(float progress)
     {
-        Log.i(TAG," onProgress # "+progress);
+        FLog.i(TAG," onProgress # "+progress);
         if (sOnCmdExecListener != null){
             if (sDuration != 0){
                 sOnCmdExecListener.onProgress(progress / (sDuration / 1000) * 0.95f);
+            }else{
+                sOnCmdExecListener.onProgress(progress);
             }
         }
     }
@@ -84,7 +84,7 @@ public class FFmpegCmd
      * jni invoked this method when task is finished.
      */
     public static void onComplete(){
-        Log.i(TAG," onComplete ()# action done!");
+        FLog.i(TAG," onComplete ()# action done!");
         if (sOnCmdExecListener != null){
             sOnCmdExecListener.onComplete();
         }
