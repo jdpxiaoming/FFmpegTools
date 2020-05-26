@@ -24,7 +24,7 @@ allprojects {
 
 - 引用
 ```
-implementation 'com.github.jdpxiaoming:ffmpeg-cmd:0.0.8r'
+implementation 'com.github.jdpxiaoming:ffmpeg-cmd:0.0.8'
 ```
 
 - example:
