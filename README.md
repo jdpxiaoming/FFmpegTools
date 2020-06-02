@@ -1,12 +1,10 @@
 # FFmpegTools the FFmpeg Android Dynamic Library
+> 想学习FFmpeg不知道如何开始，那么这个项目是为你准备的，使用过binary执行ffmpeg吗，那么本项目就是为你准备的进阶教程.
 
-- FFmpeg4.0.2
-- Android Studio 3.6.1
 
 > use this library you can do all the things with ffmepg ex: video crop ,video filter ,video stream dump and so on .
 
- use ffmpege as the binary file use commands params to run main funcition , picture and videos acitons as you licke.
-
+####  use ffmpeg as the binary file use commands params to run main funcition , picture and videos acitons as you licke.
 
 - [x] Transcode flv->mp4
 
@@ -86,7 +84,8 @@ public void dumpFlv(View view) {
 ```
 - 和上面的区别：`使用jni代码调用方式dump各种直播流为本地Mp4. `
 
-- remuxing.c(来源于编译库后官方demo  目录/share)
+- remuxing.c(来源于编译库后官方demo  目录/share,你也可以在本项目/docs/examples查看)
+
 ```c
 
 /*
@@ -312,6 +311,12 @@ end:
 }
 
 ```
+
+### 学习资料
+- [remuxing.c](/docs/examples/remuxing.c)
+- [encode_audio.c](/docs/examples/encode_audio.c)
+- [encode_video.c](/docs/examples/encode_video.c)
+- [more examples ](/docs/examples/)
 
 ### How to build your own ffmpeg.so ?
 - https://blog.lxfpoe.work/jekyll/update/2020/05/18/ffmpeg-so.html
