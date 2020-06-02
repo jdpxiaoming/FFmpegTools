@@ -21,6 +21,8 @@ public class FFmpegCmd
 
     public static native void exit();
 
+    public static  native int dump_stream(String input, String output);
+
     /**
      * this method invoked child thread , please use {@link FFmpegUtil#exec(String[], FFmpegUtil.onCallBack)}
      * @param cmds

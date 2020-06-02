@@ -4,8 +4,11 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.PermissionChecker;
+
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
@@ -15,26 +18,25 @@ import android.widget.Toast;
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegCmd;
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegFactory;
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegUtil;
-
 import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
-
-    private String[] mPermission =  new String[]{Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE};
+    private int requestPermissionCode = 10086;
+    private String[] requestPermission = new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.READ_EXTERNAL_STORAGE};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         // Example of a call to a native method
-        if(ContextCompat.checkSelfPermission(this,Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        != PackageManager.PERMISSION_GRANTED||
-                ContextCompat.checkSelfPermission(this,Manifest.permission.READ_EXTERNAL_STORAGE)
-                        != PackageManager.PERMISSION_GRANTED){
-            ActivityCompat.requestPermissions(this, mPermission, 1001);
+        // Example of a call to a native method
+        if(Build.VERSION.SDK_INT > Build.VERSION_CODES.M){
+            if(PermissionChecker.checkSelfPermission(this,Manifest.permission.WRITE_EXTERNAL_STORAGE) != PermissionChecker.PERMISSION_GRANTED){
+                requestPermissions(requestPermission,requestPermissionCode);
+            }
         }
     }
 
@@ -139,5 +141,12 @@ public class MainActivity extends AppCompatActivity {
      */
     public void stopRun(View view) {
         FFmpegUtil.getInstance().stopTask();
+    }
+
+    public void dumpFlv(View view) {
+
+        String input = "http://118.31.174.18:5581/rtmp/8e5196c4-e7d9-41b0-9080-fa0da638d9e2/live.flv";
+        String output = new File(Environment.getExternalStorageDirectory(),"/poe/output61.mp4").getAbsolutePath();
+        FFmpegCmd.dump_stream(input , output);
     }
 }
