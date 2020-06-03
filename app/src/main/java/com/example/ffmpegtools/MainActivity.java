@@ -145,8 +145,14 @@ public class MainActivity extends AppCompatActivity {
 
     public void dumpFlv(View view) {
 
-        String input = "http://118.31.174.18:5581/rtmp/8e5196c4-e7d9-41b0-9080-fa0da638d9e2/live.flv";
-        String output = new File(Environment.getExternalStorageDirectory(),"/poe/output61.mp4").getAbsolutePath();
+        //flv测试ok.
+        String input = "http://118.31.174.18:5581/rtmp/8e5196c4-e7d9-41b0-9080-fa0da638d9e2/live.flv";//flv测试流.
+        //1. h265+pcma 测试failed 猜测是音频格式pcma无法封装成mp4格式.
+        input = "rtsp://47.108.158.50:5555/rtsp/9bf29ca9-e26e-462a-bb0e-3e08461b91e8";//rtsp 测试流
+        //2. h264+aac 测试ok.
+        input = "http://47.108.158.50:6681/rtsp/a2259dbb-301a-47d8-ac37-b372684153f0/index.m3u8";
+
+        String output = new File(Environment.getExternalStorageDirectory(),"/poe/output63.mp4").getAbsolutePath();
         FFmpegCmd.dump_stream(input , output);
     }
 }

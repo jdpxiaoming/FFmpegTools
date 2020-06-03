@@ -4,8 +4,8 @@
 //extern "C"{
 //引用ffmpeg.h头方法.
 #include "ffmpeg.h"
-#include "libavformat/avformat.h"
-#include "libavcodec/avcodec.h"
+#include "include/libavformat/avformat.h"
+#include "include/libavcodec/avcodec.h"
 //}
 
 
