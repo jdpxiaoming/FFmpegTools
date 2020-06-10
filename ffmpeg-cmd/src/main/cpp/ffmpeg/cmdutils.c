@@ -61,6 +61,8 @@
 #if HAVE_SYS_RESOURCE_H
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <ffmpeg_thread.h>
+
 #endif
 #ifdef _WIN32
 #include <windows.h>

@@ -11,6 +11,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -87,7 +88,11 @@ public class FFmpegUtil implements Handler.Callback {
 
             for(;;){
 
-                if(!isRunning) break;
+
+                if(!isRunning) {
+                    FLog.e(TAG,"mReadThread stop isRunning is false !");
+                    break;
+                }
 
                 try {
                     //没有让任务等待，拿到任务继续执行
@@ -125,6 +130,7 @@ public class FFmpegUtil implements Handler.Callback {
      * @param listener
      */
     public void enQueueTask(String[] cmds, long duration, onCallBack listener){
+        Log.e(TAG,"enQueueTask()");
 
         long id = SystemClock.currentThreadTimeMillis();
         FFmepgTask task = new FFmepgTask(id, duration,cmds,listener);
@@ -143,6 +149,7 @@ public class FFmpegUtil implements Handler.Callback {
      * @param listener listen callback .
      */
     private void exec(String[] cmds, long duration, onCallBack listener) {
+        FLog.e(TAG,"exec() ~FFmpegCmd.exec..... !");
         mCallbackListener = listener;
 
         FFmpegCmd.exec(cmds, duration, new FFmpegCmd.OnCmdExecListener() {
@@ -154,14 +161,14 @@ public class FFmpegUtil implements Handler.Callback {
 
             @Override
             public void onFailure() {
-                FLog.i(TAG," onFailure # ");
+                FLog.e(TAG," onFailure # ");
                 if(null != mHandler) mHandler.sendEmptyMessage(MSG_ON_FAILURE);
 
             }
 
             @Override
             public void onComplete() {
-                FLog.i(TAG," onComplete #mHandler~ ");
+                FLog.e(TAG," onComplete #mHandler~ ");
                 if(null != mHandler) mHandler.sendEmptyMessage(MSG_ON_COMPLETE);
             }
 
@@ -189,7 +196,10 @@ public class FFmpegUtil implements Handler.Callback {
                 break;
             case MSG_ON_FAILURE://fail
                 FLog.i(TAG," MSG_ON_FAILURE # ");
-                if(null != mCallbackListener) mCallbackListener.onFailure();
+                synchronized (mLock){
+                    if(null != mCallbackListener) mCallbackListener.onFailure();
+                    mLock.notifyAll();
+                }
                 break;
             case MSG_ON_PROGRESS://progress .
                 //视频时长单位s(秒).

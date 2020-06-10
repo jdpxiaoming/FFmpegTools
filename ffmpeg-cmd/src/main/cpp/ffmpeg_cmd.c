@@ -47,6 +47,21 @@ void callJavaMethodProgress(JNIEnv *env, jclass clazz,float ret) {
     (*env)->CallStaticVoidMethod(env, clazz, methodID,ret);
 }
 
+void callJavaMethodFailure(JNIEnv *env, jclass clazz) {
+    if (clazz == NULL) {
+        LOGE("---------------clazz isNULL---------------");
+        return;
+    }
+    //获取方法ID (I)V指的是方法签名 通过javap -s -public FFmpegCmd 命令生成
+    jmethodID methodID = (*env)->GetStaticMethodID(env, clazz, "onFailure", "()V");
+    if (methodID == NULL) {
+        LOGE("---------------methodID isNULL---------------");
+        return;
+    }
+    //调用该java方法
+    (*env)->CallStaticVoidMethod(env, clazz, methodID);
+}
+
 void callJavaMethodComplete(JNIEnv *env, jclass clazz) {
     if (clazz == NULL) {
         LOGE("---------------clazz isNULL---------------");
@@ -91,15 +106,33 @@ void ffmpeg_progress(float progress) {
  * @param errorCode
  */
 void ffmpeg_complete(int errorCode){
+    //先取消本地线程.
+    ffmpeg_thread_cancel();
+
     JNIEnv *env;
     (*jvm)->AttachCurrentThread(jvm, (void **) &env, NULL);
     callJavaMethodComplete(env, m_clazz);
     (*jvm)->DetachCurrentThread(jvm);
 }
 
+/**
+ * 异常结束任务.
+ * @param errorCode
+ */
+void ffmpeg_failure(int errorCode){
+    //先取消本地线程.
+    ffmpeg_thread_cancel();
+
+    JNIEnv *env;
+    (*jvm)->AttachCurrentThread(jvm, (void **) &env, NULL);
+    callJavaMethodFailure(env, m_clazz);
+    (*jvm)->DetachCurrentThread(jvm);
+}
+
 
 JNIEXPORT jint JNICALL
 Java_com_jdpxiaoming_ffmpeg_1cmd_FFmpegCmd_exec(JNIEnv *env, jclass clazz, jint cmdnum, jobjectArray cmdline) {
+    LOGE("Java_com_jdpxiaoming_ffmpeg_1cmd_FFmpegCmd_exec execute!!!");
     // DO: implement exec()
     (*env)->GetJavaVM(env, &jvm);
     m_clazz = (*env)->NewGlobalRef(env, clazz);
@@ -136,7 +169,11 @@ Java_com_jdpxiaoming_ffmpeg_1cmd_FFmpegCmd_exit(JNIEnv *env, jclass clazz) {
     isDownloading = 0;
     //2. stop the pthread_t .
     void *ret=NULL;
-    pthread_join(pid_dump , &ret);
+    if(pid_dump){
+        pthread_join(pid_dump , &ret);
+    }else{
+        LOGE("pid_dump is NULl , do noting to exit this program !");
+    }
 }
 
 

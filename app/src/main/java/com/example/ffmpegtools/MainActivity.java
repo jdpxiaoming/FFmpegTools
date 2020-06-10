@@ -74,6 +74,8 @@ public class MainActivity extends AppCompatActivity {
         }
         //cmds for ffmpeg flv->mp4.
 //        inputPath ="http://106.14.218.234:5581/rtsp/0d427a62-3f7b-44e6-b81f-e891ba79f994/live.flv";
+        inputPath = "http://101.133.158.71:5581/rtsp/942f4c4e-377d-4581-9812-e7306cfc3a36/live.flv";
+
         String[] commands = FFmpegFactory.buildFlv2Mp4(inputPath,outputPath);
 
         FFmpegUtil.getInstance().enQueueTask(commands, 0,new FFmpegUtil.onCallBack() {
@@ -86,6 +88,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onFailure() {
                 Log.i(TAG," onFailure # ");
+                Toast.makeText(MainActivity.this, "transcode failed ,please check your input file !", Toast.LENGTH_LONG).show();
             }
 
             @Override
@@ -99,8 +102,6 @@ public class MainActivity extends AppCompatActivity {
                 Log.i(TAG," onProgress # "+progress);
             }
         });
-
-
 
         outputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/63.mp4";
         output =new File(outputPath);
@@ -119,6 +120,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onFailure() {
                 Log.i(TAG," onFailure2 # ");
+                Toast.makeText(MainActivity.this, "transcode failed2 ,please check your input file2 !", Toast.LENGTH_LONG).show();
             }
 
             @Override

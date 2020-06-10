@@ -93,6 +93,17 @@ public class FFmpegCmd
     }
 
 
+    /**
+     *  task finish invoked.
+     * jni invoked this method when task is finished.
+     */
+    public static void onFailure(){
+        FLog.i(TAG," onFailure ()# action done!");
+        if (sOnCmdExecListener != null){
+            sOnCmdExecListener.onFailure();
+        }
+    }
+
     public interface OnCmdExecListener {
         void onSuccess();
 

@@ -478,6 +478,7 @@ const AVIOInterruptCB int_cb = { decode_interrupt_cb, NULL };
 
 static void ffmpeg_cleanup(int ret)
 {
+    LOGE("ffmpeg_cleanup~!!~");
     int i, j;
 
     if (do_benchmark) {
@@ -639,6 +640,11 @@ static void ffmpeg_cleanup(int ret)
     nb_input_files = 0;
     input_streams = NULL;
     nb_input_streams = 0;
+    progress_avio = NULL;
+
+    received_sigterm = 0;
+    received_nb_signals = 0;
+    transcode_init_done = ATOMIC_VAR_INIT(0);
 }
 
 void remove_avoptions(AVDictionary **a, AVDictionary *b)
@@ -4823,6 +4829,7 @@ static void log_callback_test2(void *ptr, int level, const char *fmt, va_list vl
 //main函数入口.
 int ffmpeg_exec(int argc, char **argv)
 {
+    LOGE("ffmpeg_exec ---------------------------------->>>");
     int i, ret;
     int64_t ti;
 
@@ -4853,8 +4860,11 @@ int ffmpeg_exec(int argc, char **argv)
 
     /* parse options and open all input/output files */
     ret = ffmpeg_parse_options(argc, argv);
-    if (ret < 0)
-        exit_program(1);
+    if (ret < 0){
+        ffmpeg_failure(ret);
+        ffmpeg_cleanup(ret);
+        return 0;
+    }
 
     if (nb_output_files <= 0 && nb_input_files == 0) {
         show_usage();
@@ -4894,18 +4904,8 @@ int ffmpeg_exec(int argc, char **argv)
 
     //注释掉这行，否则完成后会闪退.
 //    exit_program(received_nb_signals ? 255 : main_return_code);
-
     // return之前增加：
-    nb_filtergraphs = 0;
-    progress_avio = NULL;
-    input_streams = NULL;
-    nb_input_streams = 0;
-    input_files = NULL;
-    nb_input_files = 0;
-    output_streams = NULL;
-    nb_output_streams = 0;
-    output_files = NULL;
-    nb_output_files = 0;
+    ffmpeg_cleanup(ret);
 
     return main_return_code;
 }

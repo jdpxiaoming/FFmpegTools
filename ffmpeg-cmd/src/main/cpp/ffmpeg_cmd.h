@@ -17,6 +17,7 @@
 
 void ffmpeg_progress(float progress);
 void ffmpeg_complete(int errorCode);
+void ffmpeg_failure(int errorCode);
 /**
  * dump stream to local mp4 file witch -vcodec copy -acodec copy .
  * @param input
