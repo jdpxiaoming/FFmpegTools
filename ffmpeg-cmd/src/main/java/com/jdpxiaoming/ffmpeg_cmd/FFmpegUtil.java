@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * ffmepg tools thread attack to main thread util class.
@@ -36,6 +37,7 @@ public class FFmpegUtil implements Handler.Callback {
     private static final int MSG_ON_FAILURE = 0x002;
     private static final int MSG_ON_PROGRESS = 0x003;
     private static final int MSG_ON_COMPLETE = 0x004;
+    private static final int MSG_ON_CANCEL_FINISH = 0x005;
     private static final int MSG_ON_ERROR = 0x101;
 
     private Handler mHandler;
@@ -88,22 +90,20 @@ public class FFmpegUtil implements Handler.Callback {
 
             for(;;){
 
-
                 if(!isRunning) {
                     FLog.e(TAG,"mReadThread stop isRunning is false !");
                     break;
                 }
 
                 try {
-                    //没有让任务等待，拿到任务继续执行
-                    mCurrentTask =  mAsynTaskQueue.take();
-
-                   if(null != mCurrentTask){
-                       //枷锁，等待当前任务执行完毕.MSG_ON_COMPLETE被执行.
-                       synchronized (mLock){
-                           exec(mCurrentTask.getCmds(),mCurrentTask.getDuration(),mCurrentTask.callBacklistener);
-                           mLock.wait();
-                       }
+                    synchronized (mLock){
+                      //没有让任务等待，拿到任务继续执行
+                      mCurrentTask =  mAsynTaskQueue.take();
+                      if(null != mCurrentTask){
+                          //枷锁，等待当前任务执行完毕.MSG_ON_COMPLETE被执行.
+                          exec(mCurrentTask.getCmds(),mCurrentTask.getDuration(),mCurrentTask.callBacklistener);
+                      }
+                      mLock.wait();
                    }
                 } catch (InterruptedException e) {
                     e.printStackTrace();
@@ -113,14 +113,33 @@ public class FFmpegUtil implements Handler.Callback {
     };
 
 
+
+
     /**
      * 结束当前任务.清空等待队列. 结束后台任务.
      */
     public void stopTask(){
         isRunning = false;
-//        mThreadPoolService.shutdown();
-        FFmpegCmd.exit();
         mAsynTaskQueue.clear();
+        synchronized (mLock){
+            mLock.notifyAll();
+        }
+        FFmpegCmd.exit();
+    }
+
+    /**
+     * untest please do not use this .
+     */
+    public void onDestroy(){
+        isRunning = false;
+        mThreadPoolService.shutdown();
+        try {
+            if(!mThreadPoolService.awaitTermination(100, TimeUnit.MILLISECONDS)){
+                mThreadPoolService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -177,6 +196,12 @@ public class FFmpegUtil implements Handler.Callback {
                 FLog.i(TAG," onProgress # ");
                 if(null != mHandler) mHandler.sendMessage(mHandler.obtainMessage(MSG_ON_PROGRESS,progress));
             }
+
+            @Override
+            public void onCancelFinish() {
+                FLog.e(TAG," onCancelFinish #mHandler~ ");
+                if(null != mHandler) mHandler.sendEmptyMessage(MSG_ON_CANCEL_FINISH);
+            }
         });
     }
 
@@ -209,9 +234,15 @@ public class FFmpegUtil implements Handler.Callback {
                 break;
             case MSG_ON_COMPLETE://finish .
                 FLog.i(TAG," MSG_ON_COMPLETE # ");
-                // TODO: 2020/5/21 通知任务继续执行.
+                // DO: 2020/5/21 通知任务继续执行.
                 synchronized (mLock){
                     if(null != mCallbackListener) mCallbackListener.onComplete();
+                    mLock.notifyAll();
+                }
+                break;
+            case MSG_ON_CANCEL_FINISH://cancel finish .
+                FLog.i(TAG," MSG_ON_COMPLETE # ");
+                synchronized (mLock){
                     mLock.notifyAll();
                 }
                 break;

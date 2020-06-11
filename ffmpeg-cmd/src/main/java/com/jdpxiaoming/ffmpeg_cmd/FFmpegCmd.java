@@ -104,6 +104,16 @@ public class FFmpegCmd
         }
     }
 
+    /**
+     * stop下载任务回调.
+     */
+    public static void onCancelFinish(){
+        FLog.i(TAG," onCancelFinish ()# action done!");
+        if (sOnCmdExecListener != null){
+            sOnCmdExecListener.onCancelFinish();
+        }
+    }
+
     public interface OnCmdExecListener {
         void onSuccess();
 
@@ -112,6 +122,11 @@ public class FFmpegCmd
         void onComplete();
 
         void onProgress(float progress);
+
+        /**
+         * 取消完成.
+         */
+        void onCancelFinish();
     }
 
 }

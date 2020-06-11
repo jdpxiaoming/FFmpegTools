@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
      */
     public void videoTransform(View view) {
         String inputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/58.flv";
-        String outputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/62.mp4";
+        String outputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/611.mp4";
         File input =new File(inputPath);
         if(!input.exists()){
             Toast.makeText(MainActivity.this, "/Download/58.flv not found!", Toast.LENGTH_LONG).show();
@@ -74,9 +74,9 @@ public class MainActivity extends AppCompatActivity {
         }
         //cmds for ffmpeg flv->mp4.
 //        inputPath ="http://106.14.218.234:5581/rtsp/0d427a62-3f7b-44e6-b81f-e891ba79f994/live.flv";
-        inputPath = "http://101.133.158.71:5581/rtsp/942f4c4e-377d-4581-9812-e7306cfc3a36/live.flv";
+        inputPath = "rtsp://47.108.81.159:5555/rtsp/68a85629-a519-4b1d-943f-aa368863b839";
 
-        String[] commands = FFmpegFactory.buildFlv2Mp4(inputPath,outputPath);
+        String[] commands = FFmpegFactory.buildRtsp2Mp4(inputPath,outputPath);
 
         FFmpegUtil.getInstance().enQueueTask(commands, 0,new FFmpegUtil.onCallBack() {
             @Override
@@ -102,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.i(TAG," onProgress # "+progress);
             }
         });
-
+      /*
         outputPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/63.mp4";
         output =new File(outputPath);
         if(output.exists()){
@@ -133,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
             public void onProgress(float progress) {
                 Log.i(TAG," onProgress2 # "+progress);
             }
-        });
+        });*/
 
     }
 

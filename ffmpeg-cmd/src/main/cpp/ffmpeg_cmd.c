@@ -78,6 +78,26 @@ void callJavaMethodComplete(JNIEnv *env, jclass clazz) {
 }
 
 /**
+ * 取消任务回调.
+ * @param env
+ * @param clazz
+ */
+void callJavaMethodCancelFinish(JNIEnv *env, jclass clazz) {
+    if (clazz == NULL) {
+        LOGE("---------------clazz isNULL---------------");
+        return;
+    }
+    //获取方法ID (I)V指的是方法签名 通过javap -s -public FFmpegCmd 命令生成
+    jmethodID methodID = (*env)->GetStaticMethodID(env, clazz, "onComplete", "()V");
+    if (methodID == NULL) {
+        LOGE("---------------methodID isNULL---------------");
+        return;
+    }
+    //调用该java方法
+    (*env)->CallStaticVoidMethod(env, clazz, methodID);
+}
+
+/**
  * c语言-线程回调
  */
 static void ffmpeg_callback(int ret) {
@@ -106,6 +126,20 @@ void ffmpeg_progress(float progress) {
  * @param errorCode
  */
 void ffmpeg_complete(int errorCode){
+    //先取消本地线程.
+    ffmpeg_thread_cancel();
+
+    JNIEnv *env;
+    (*jvm)->AttachCurrentThread(jvm, (void **) &env, NULL);
+    callJavaMethodComplete(env, m_clazz);
+    (*jvm)->DetachCurrentThread(jvm);
+}
+
+/**
+ * 取消下载任务.
+ * @param errorCode
+ */
+void ffmpeg_cancel_finish(int errorCode){
     //先取消本地线程.
     ffmpeg_thread_cancel();
 
@@ -174,6 +208,8 @@ Java_com_jdpxiaoming_ffmpeg_1cmd_FFmpegCmd_exit(JNIEnv *env, jclass clazz) {
     }else{
         LOGE("pid_dump is NULl , do noting to exit this program !");
     }
+    //通知回调stop结束.
+
 }
 
 
