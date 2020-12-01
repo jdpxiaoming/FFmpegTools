@@ -1,7 +1,9 @@
 #include "libavcodec/avcodec.h"
 #include "ffmpeg_thread.h"
 #include "android_log.h"
-
+/**
+ * executed thread id .
+ */
 pthread_t ntid;
 char **argvs = NULL;
 int num=0;

@@ -21,7 +21,14 @@ public class FFmpegCmd
 
     public static native void exit();
 
+    /**
+     * 手动c代码调用api，非cmd模式.
+     * @param input
+     * @param output
+     * @return
+     */
     public static  native int dump_stream(String input, String output);
+    public static  native int dump_Rtsp_h265(String input, String output);
 
     /**
      * this method invoked child thread , please use {@link FFmpegUtil#exec(String[], FFmpegUtil.onCallBack)}

@@ -212,15 +212,20 @@ Java_com_jdpxiaoming_ffmpeg_1cmd_FFmpegCmd_exit(JNIEnv *env, jclass clazz) {
 
 }
 
-
 //开启下载线程的具体执行，类似runnable.
 void * startDownloadThread(void* args){
+    downloadFile(inputPath , outputPath);
+}
+
+//开启下载线程的具体执行，类似runnable.
+void * startRtspDownloadThread(void* args){
     downloadFileAAc(inputPath , outputPath);
 }
 
 JNIEXPORT jint JNICALL
 Java_com_jdpxiaoming_ffmpeg_1cmd_FFmpegCmd_dump_1stream(JNIEnv *env, jclass clazz, jstring input,
                                                         jstring output) {
+    LOGE("Java_com_jdpxiaoming_ffmpeg_1cmd_FFmpegCmd_dump_1stream()~");
     inputPath = (char *) (*env)->GetStringUTFChars(env, input, 0);
     outputPath = (char *) (*env)->GetStringUTFChars(env, output, 0);
     pthread_create(&pid_dump, NULL ,startDownloadThread, NULL);
@@ -270,10 +275,10 @@ int downloadFile(const char* input, const char* output){
     }
 
     //check the input foramt protocal ? rtsp/file/http/htts/rtmp? .
-    //no , it is an log print to console .and so on .
+    //no , it is an log print to console .and so on .将流的一些配置信息保存在输入环境信息
     av_dump_format(ifmt_ctx, 0, in_filename, 0);
 
-    //init the output AvformatCotnext with out_filename.
+    //init the output AvformatCotnext with out_filename.据输出flv文件名称和路径得到输出环境信息
     avformat_alloc_output_context2(&ofmt_ctx, NULL, NULL, out_filename);
     if (!ofmt_ctx) {
         fprintf(stderr, "Could not create output context\n");
@@ -420,6 +425,13 @@ end:
 }
 
 
+/**
+ * 手动下载视频保存为mp4.
+ * flv -> mp4.
+ * @param input
+ * @param output
+ * @return
+ */
 int downloadFileAAc(const char* input, const char* output){
     LOGE("downloadFileAAc# download file input :%s , output: %s", input , output);
 //    AVAudioFifo
@@ -637,7 +649,7 @@ int open_input_file(const char *filename) {
 
 /**
  * 输出文件打开，初始化编码器上下文.
- * @param filename
+ * @param filename 输出文件路径.
  * @return
  */
 int open_output_file(const char *filename) {
@@ -647,6 +659,8 @@ int open_output_file(const char *filename) {
     AVCodec *encoder;
     int ret;
     unsigned int i;
+
+    LOGE("open_output_file:%s ", filename);
 
     ofmt_ctx = avformat_alloc_context();
     //int the out put avformat context .
@@ -660,7 +674,8 @@ int open_output_file(const char *filename) {
 
 
     for (i = 0; i < ifmt_ctx->nb_streams; i++) {
-        out_stream = avformat_new_stream(ofmt_ctx, NULL);
+        //construct the output stream .
+        out_stream = avformat_new_stream(ofmt_ctx, in_stream->codec->codec);
         if (!out_stream) {
             av_log(NULL, AV_LOG_ERROR, "Failed allocating output stream\n");
             LOGE("Failed allocating output stream\n");
@@ -668,14 +683,15 @@ int open_output_file(const char *filename) {
         }
 
         in_stream = ifmt_ctx->streams[i];
+        //decode context.
         dec_ctx = stream_ctx[i].dec_ctx;
         if(!dec_ctx){
             LOGE("解码器%s为NULL",i);
         }
 
+        //attention: get the codec failed lead to failed convert flv stream file.
         if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO
             || dec_ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
-
 
             if(dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO){
                 LOGE("AVMEDIA_TYPE_VIDEO");
@@ -683,6 +699,14 @@ int open_output_file(const char *filename) {
                     LOGE("the decode video type is H265~!");
                 }
                 encoder = avcodec_find_encoder(AV_CODEC_ID_H265);
+
+                if (!encoder) {
+                    LOGE("H265 encoder get failed ! try to ge H264 encoder ~~~");
+                    encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
+                    if (!encoder) {
+                        LOGE("H264 encoder get failed ! ");
+                    }
+                }
 
             }else if(dec_ctx->codec_type == AVMEDIA_TYPE_AUDIO){
                 LOGE("AVMEDIA_TYPE_AUDIO");
@@ -699,6 +723,9 @@ int open_output_file(const char *filename) {
                 LOGE("Necessary encoder not found\n");
                 return AVERROR_INVALIDDATA;
             }
+
+
+
             enc_ctx = avcodec_alloc_context3(encoder);
             if (!enc_ctx) {
                 av_log(NULL, AV_LOG_FATAL, "Failed to allocate the encoder context\n");
@@ -1065,4 +1092,13 @@ int flush_encoder(unsigned int stream_index) {
             return 0;
     }
     return ret;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_jdpxiaoming_ffmpeg_1cmd_FFmpegCmd_dump_1Rtsp_1h265(JNIEnv *env, jclass clazz,
+                                                            jstring input, jstring output) {
+    LOGE("Java_com_jdpxiaoming_ffmpeg_1cmd_FFmpegCmd_dump_1Rtsp_1h265()~");
+    inputPath = (char *) (*env)->GetStringUTFChars(env, input, 0);
+    outputPath = (char *) (*env)->GetStringUTFChars(env, output, 0);
+    pthread_create(&pid_dump, NULL ,startRtspDownloadThread, NULL);
 }

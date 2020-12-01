@@ -476,6 +476,12 @@ static int decode_interrupt_cb(void *ctx)
 
 const AVIOInterruptCB int_cb = { decode_interrupt_cb, NULL };
 
+/**
+ * clean up all data set .
+ * clean action state .
+ * clean buffer.
+ * @param ret
+ */
 static void ffmpeg_cleanup(int ret)
 {
     LOGE("ffmpeg_cleanup~!!~");
@@ -2983,6 +2989,7 @@ static int compare_int64(const void *a, const void *b)
 /* open the muxer when all the streams are initialized */
 static int check_init_output_file(OutputFile *of, int file_index)
 {
+    LOGE("check_init_output_file");
     int ret, i;
 
     for (i = 0; i < of->ctx->nb_streams; i++) {
@@ -3646,6 +3653,7 @@ static void report_new_stream(int input_index, AVPacket *pkt)
 
 static int transcode_init(void)
 {
+    LOGE("transcode_init");
     int ret = 0, i, j, k;
     AVFormatContext *oc;
     OutputStream *ost;
@@ -4861,6 +4869,7 @@ int ffmpeg_exec(int argc, char **argv)
     /* parse options and open all input/output files */
     ret = ffmpeg_parse_options(argc, argv);
     if (ret < 0){
+        LOGE("ffmpeg_parse_options error !#4870");
         ffmpeg_failure(ret);
         ffmpeg_cleanup(ret);
         return 0;
