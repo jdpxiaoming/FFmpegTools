@@ -12,13 +12,9 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
 import android.util.Log;
-
-import androidx.annotation.NonNull;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -211,7 +207,7 @@ public class FFmpegUtil implements Handler.Callback {
 
 
     @Override
-    public boolean handleMessage(@NonNull Message msg) {
+    public boolean handleMessage(Message msg) {
 
         switch (msg.what){
             default:
