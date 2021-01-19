@@ -3219,6 +3219,9 @@ static int open_files(OptionGroupList *l, const char *inout,
     return 0;
 }
 
+/**
+ * 分析命令参数.
+ */
 int ffmpeg_parse_options(int argc, char **argv)
 {
     OptionParseContext octx;

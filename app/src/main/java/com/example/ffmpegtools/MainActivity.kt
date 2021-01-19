@@ -69,15 +69,16 @@ class MainActivity : AppCompatActivity() {
      * @param view
      */
     fun videoTransform(view: View?) {
-        val inputPath = "http://113.31.102.114:5581/rtsp/9c137ab8-dde5-4342-9aa0-6ad29a862a9a.flv"
-        val outputPath = Environment.getExternalStorageDirectory().absolutePath + "/Download/1117.mp4"
+        val inputPath = "rtsp://116.63.183.179:5555/rtsp/a00287eb-5217-4982-b44d-70b428207a06"
+        val outputPath = Environment.getExternalStorageDirectory().absolutePath + "/Download/2021119.mp4"
         val output = File(outputPath)
         if (output.exists()) {
             output.delete()
         }
         //cmds for ffmpeg flv->mp4.
         var commands: Array<String?>? = null // FFmpegFactory.buildRtsp2Mp4(inputPath,outputPath);
-        commands = FFmpegFactory.buildFlv2Mp4(inputPath, outputPath)
+//        commands = FFmpegFactory.buildFlv2Mp4(inputPath, outputPath)
+        commands = FFmpegFactory.buildRtsp2Mp4(inputPath, outputPath)
         FFmpegUtil.getInstance().enQueueTask(commands, 0, object : onCallBack {
             override fun onStart() {
                 Log.i(TAG, " onStart2 # ")
@@ -124,9 +125,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         //转化flv的地址.
-        flv_et.setText("http://106.75.254.198:5581/rtsp/e075fedc-ca6d-46ee-b40c-55500990ee50.flv");
+        flv_et.setText("http://114.55.169.80:5580/55000000000000000011100037300000-0.flv");
         //转化rtsp（hevc)的地址
-        rtsp_et.setText("rtsp://47.108.81.159:5555/rtsp/e8f98226-5263-472c-8bbc-e3ec06c7ab1d");
+        rtsp_et.setText("rtsp://47.108.81.159:5555/rtsp/94471817-9fff-4c05-9932-7153204ef970");
     }
 
 
@@ -160,6 +161,6 @@ class MainActivity : AppCompatActivity() {
         //flv测试ok.
         val input = rtsp_et.text.toString();
         val output = File(Environment.getExternalStorageDirectory(), "/poe/output73.mp4").absolutePath
-        FFmpegCmd.dump_stream(input, output)
+        FFmpegCmd.dump_Rtsp_h265(input, output)
     }
 }

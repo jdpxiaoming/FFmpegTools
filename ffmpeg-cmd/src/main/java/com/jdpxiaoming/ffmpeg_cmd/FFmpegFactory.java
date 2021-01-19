@@ -49,7 +49,7 @@ public class FFmpegFactory {
      * @return
      */
     public static String[] buildRtsp2Mp4(String inputPath ,String outputPath){
-        String[] commands = new String[13];
+        String[] commands = new String[15];
         commands[0] = "ffmpeg";
         commands[1] = "-rtsp_transport";
         commands[2] = "tcp";
@@ -57,12 +57,16 @@ public class FFmpegFactory {
         commands[4] = inputPath;
         commands[5] = "-vcodec";
         commands[6] = "copy";
-        commands[7] = "-acodec";
-        commands[8] = "aac";
-        commands[9] = "-f";
-        commands[10] = "mp4";
-        commands[11] = "-y";//覆盖
-        commands[12] = outputPath;
+        //       -tag:v hvc1
+        commands[7] = "-tag:v";
+        commands[8] = "hvc1";
+
+        commands[9] = "-acodec";
+        commands[10] = "aac";
+        commands[11] = "-f";
+        commands[12] = "mp4";
+        commands[13] = "-y";//覆盖
+        commands[14] = outputPath;
 
         return commands;
     }

@@ -6,6 +6,7 @@
 #include <include/libavutil/opt.h>
 #include <include/libavfilter/buffersrc.h>
 #include <include/libavfilter/buffersink.h>
+#include <include/libavutil/avassert.h>
 #include "ffmpeg_thread.h"
 #include "android_log.h"
 #include "cmdutils.h"
@@ -446,8 +447,11 @@ int downloadFileAAc(const char* input, const char* output){
     int got_frame;
     //预定义一个空方法. 函数指针.
     int (*dec_func)(AVCodecContext *, AVFrame *, int *, const AVPacket *);
-
-    //开始解码tag
+    //音频转换上下文.
+    SwrContext *resample_context = NULL;
+    //音频转换缓冲池.
+    AVAudioFifo *fifo = NULL;
+    //开始解码tag 1：开始转码 0：结束finish.
     isDownloading = 1;
 
     //打开输入流.
@@ -457,64 +461,44 @@ int downloadFileAAc(const char* input, const char* output){
     if ((ret = open_output_file(output)) < 0)
         goto end;
     //初始化过滤器
-    if ((ret = init_filters()) < 0)
+    /* Initialize the resampler to be able to convert audio sample formats. */
+    if (init_resampler(ifmt_ctx, ofmt_ctx, &resample_context))
         goto end;
+    /* Initialize the FIFO buffer to store audio samples to be encoded. */
+    if (init_fifo(&fifo, ofmt_ctx))
+        goto end;
+
+    /* Write the header of the output file container. */
+    if (write_output_file_header(ofmt_ctx))
+        goto end;
+
 
     /* read all packets */
     while (isDownloading) {
+
+        /* Use the encoder's desired frame size for processing. */
         if ((ret = av_read_frame(ifmt_ctx, &packet)) < 0)
             break;
         stream_index = packet.stream_index;
+
+        //获取解码器上下文.
+        AVCodecContext* dec_ctx = stream_ctx[i].dec_ctx;
+        //计算一个framesize.
+        const int output_frame_size = dec_ctx->frame_size;
+
         type = ifmt_ctx->streams[packet.stream_index]->codecpar->codec_type;
         av_log(NULL, AV_LOG_DEBUG, "Demuxer gave frame of stream_index %u\n",
                stream_index);
         LOGE("Demuxer gave frame of stream_index %u\n",
              stream_index);
         //处理过滤器.
-        if (filter_ctx[stream_index].filter_graph) {
-            av_log(NULL, AV_LOG_DEBUG, "Going to reencode&filter the frame\n");
-            LOGE("Going to reencode&filter the frame\n");
-            frame = av_frame_alloc();
-            if (!frame) {
-                ret = AVERROR(ENOMEM);
-                break;
-            }
-            av_packet_rescale_ts(&packet,
-                                 ifmt_ctx->streams[stream_index]->time_base,
-                                 stream_ctx[stream_index].dec_ctx->time_base);
-            //老方法：解码audio/video 已经替换为avcodec_send_packet() and avcodec_receive_frame().
-            dec_func = (type == AVMEDIA_TYPE_VIDEO) ? avcodec_decode_video2 :
-                       avcodec_decode_audio4;
-            ret = dec_func(stream_ctx[stream_index].dec_ctx, frame,
-                           &got_frame, &packet);
-            if (ret < 0) {
-                av_frame_free(&frame);
-                av_log(NULL, AV_LOG_ERROR, "Decoding failed\n");
-                LOGE("Decoding failed\n");
-                break;
-            }
-
-            if (got_frame) {
-                frame->pts = frame->best_effort_timestamp;
-                //写入一帧数据.
-                ret = filter_encode_write_frame(frame, stream_index);
-                //free释放. frame。
-                av_frame_free(&frame);
-                if (ret < 0)
-                    goto end;
-            } else {
-                av_frame_free(&frame);
-            }
-        } else {
-            /* remux this frame without reencoding */
-            av_packet_rescale_ts(&packet,
-                                 ifmt_ctx->streams[stream_index]->time_base,
-                                 ofmt_ctx->streams[stream_index]->time_base);
-
-            ret = av_interleaved_write_frame(ofmt_ctx, &packet);
-            if (ret < 0)
-                goto end;
-        }
+        /* remux this frame without reencoding */
+        av_packet_rescale_ts(&packet,
+                ifmt_ctx->streams[stream_index]->time_base,
+                ofmt_ctx->streams[stream_index]->time_base);
+        ret = av_interleaved_write_frame(ofmt_ctx, &packet);
+        if (ret < 0)
+            goto end;
         av_packet_unref(&packet);
     }
 
@@ -575,9 +559,11 @@ int open_input_file(const char *filename) {
 
     //总上下文，用来解压视频为 视频流+音频流.
     ifmt_ctx = avformat_alloc_context();
-//    ifmt_ctx = NULL;
+    //设置读取参数
+    AVDictionary* inputDic = NULL ;
+    av_dict_set(&inputDic, "rtsp_transport", "tcp", 0);
 
-    if ((ret = avformat_open_input(&ifmt_ctx, filename, 0, 0)) < 0) {
+    if ((ret = avformat_open_input(&ifmt_ctx, filename, 0, &inputDic)) < 0) {
         av_log(NULL, AV_LOG_ERROR, "Cannot open input file\n");
         LOGE("Cannot open input file\n");
         return ret;
@@ -662,6 +648,7 @@ int open_output_file(const char *filename) {
 
     LOGE("open_output_file:%s ", filename);
 
+    //AvFormatCotext. 输出上下文.
     ofmt_ctx = avformat_alloc_context();
     //int the out put avformat context .
     avformat_alloc_output_context2(&ofmt_ctx, NULL, NULL, filename);
@@ -693,24 +680,36 @@ int open_output_file(const char *filename) {
         if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO
             || dec_ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
 
-            if(dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO){
+            if(dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO){//视频采用h264编码over.
                 LOGE("AVMEDIA_TYPE_VIDEO");
                 if(dec_ctx->codec_id == AV_CODEC_ID_HEVC){
-                    LOGE("the decode video type is H265~!");
+                    LOGE("the decode video type is HEVC~!");
                 }
-                encoder = avcodec_find_encoder(AV_CODEC_ID_H265);
 
+                encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
                 if (!encoder) {
-                    LOGE("H265 encoder get failed ! try to ge H264 encoder ~~~");
-                    encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
-                    if (!encoder) {
-                        LOGE("H264 encoder get failed ! ");
-                    }
+                    LOGE("H264 encoder get failed ! ");
+                }else{
+                    LOGE("H264 encoder get success ! ");
                 }
 
-            }else if(dec_ctx->codec_type == AVMEDIA_TYPE_AUDIO){
+            }else if(dec_ctx->codec_type == AVMEDIA_TYPE_AUDIO){//音频采用AAC
                 LOGE("AVMEDIA_TYPE_AUDIO");
-                encoder = avcodec_find_encoder(dec_ctx->codec_id);
+                if(dec_ctx->codec_id == AV_CODEC_ID_PCM_ALAW){
+                    LOGE("the decode video type is PCMA~! ");
+//                    todo:要重采样PCMA为AAC格式。
+                    encoder = avcodec_find_decoder(AV_CODEC_ID_AAC);
+                    if(!encoder){
+                        LOGE("AAC encoder get failed !");
+                    }else{
+                        LOGE("AAC encoder get success !");
+                    }
+                }else{
+                    encoder = avcodec_find_encoder(dec_ctx->codec_id);
+                }
+                if (!encoder) {
+                    LOGE("audio  encoder get failed !");
+                }
             }else{
                 LOGE("UNKNOWN_TYPE_AUDIO");
                 encoder = avcodec_find_encoder(dec_ctx->codec_id);
@@ -724,15 +723,17 @@ int open_output_file(const char *filename) {
                 return AVERROR_INVALIDDATA;
             }
 
-
-
+            //编码上下文.
             enc_ctx = avcodec_alloc_context3(encoder);
+
             if (!enc_ctx) {
                 av_log(NULL, AV_LOG_FATAL, "Failed to allocate the encoder context\n");
                 LOGE("Failed to allocate the encoder context\n");
                 return AVERROR(ENOMEM);
             }
 
+//            enc_ctx->codec_id = encoder->id;
+//            enc_ctx->codec_type = dec_ctx->codec_type;
             /* In this example, we transcode to same properties (picture size,
              * sample rate etc.). These properties can be changed for output
              * streams easily using filters */
@@ -748,21 +749,25 @@ int open_output_file(const char *filename) {
                 /* video time_base can be set to whatever is handy and supported by encoder */
                 enc_ctx->time_base = av_inv_q(dec_ctx->framerate);
             } else {
-                enc_ctx->sample_rate = dec_ctx->sample_rate;
-                enc_ctx->channel_layout = dec_ctx->channel_layout;
-                enc_ctx->channels = av_get_channel_layout_nb_channels(enc_ctx->channel_layout);
+                enc_ctx->sample_rate = 44100;//dec_ctx->sample_rate;
+                enc_ctx->channel_layout = av_get_default_channel_layout(2);//dec_ctx->channel_layout;
+                enc_ctx->channels = 2;//av_get_channel_layout_nb_channels(enc_ctx->channel_layout);
                 /* take first format from list of supported formats */
                 enc_ctx->sample_fmt = encoder->sample_fmts[0];
-                enc_ctx->time_base = (AVRational){1, enc_ctx->sample_rate};
+                enc_ctx->time_base.den = dec_ctx->sample_rate;
+                enc_ctx->time_base.num = 1;
+//                enc_ctx->time_base = (AVRational){1, enc_ctx->sample_rate};
             }
 
-            /* Third parameter can be used to pass settings to encoder */
+            /* 打开输出编解码器，灯下面用 */
             ret = avcodec_open2(enc_ctx, encoder, NULL);
+
             if (ret < 0) {
                 av_log(NULL, AV_LOG_ERROR, "Cannot open video encoder for stream #%u\n", i);
                 LOGE("Cannot open video encoder for stream #%u\n", i);
                 return ret;
             }
+            //配置输出参数信息.
             ret = avcodec_parameters_from_context(out_stream->codecpar, enc_ctx);
             if (ret < 0) {
                 av_log(NULL, AV_LOG_ERROR, "Failed to copy encoder parameters to output stream #%u\n", i);
@@ -772,7 +777,12 @@ int open_output_file(const char *filename) {
             if (ofmt_ctx->oformat->flags & AVFMT_GLOBALHEADER)
                 enc_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
-            out_stream->time_base = enc_ctx->time_base;
+//            out_stream->time_base = enc_ctx->time_base;
+
+            //设置输出流的time base.
+            out_stream->time_base.den = dec_ctx->sample_rate;
+            out_stream->time_base.num = 1;
+
             stream_ctx[i].enc_ctx = enc_ctx;
         } else if (dec_ctx->codec_type == AVMEDIA_TYPE_UNKNOWN) {
             av_log(NULL, AV_LOG_FATAL, "Elementary stream #%d is of unknown type, cannot proceed\n", i);
@@ -812,182 +822,6 @@ int open_output_file(const char *filename) {
     return 0;
 }
 
-int init_filter(FilteringContext *fctx, AVCodecContext *dec_ctx, AVCodecContext *enc_ctx,
-                const char *filter_spec) {
-    char args[512];
-    int ret = 0;
-    const AVFilter *buffersrc = NULL;
-    const AVFilter *buffersink = NULL;
-    AVFilterContext *buffersrc_ctx = NULL;
-    AVFilterContext *buffersink_ctx = NULL;
-    AVFilterInOut *outputs = avfilter_inout_alloc();
-    AVFilterInOut *inputs  = avfilter_inout_alloc();
-    AVFilterGraph *filter_graph = avfilter_graph_alloc();
-
-    if (!outputs || !inputs || !filter_graph) {
-        ret = AVERROR(ENOMEM);
-        goto end;
-    }
-
-    if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
-        buffersrc = avfilter_get_by_name("buffer");
-        buffersink = avfilter_get_by_name("buffersink");
-        if (!buffersrc || !buffersink) {
-            LOGE(NULL, AV_LOG_ERROR, "filtering source or sink element not found\n");
-            ret = AVERROR_UNKNOWN;
-            goto end;
-        }
-
-        snprintf(args, sizeof(args),
-                 "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
-                 dec_ctx->width, dec_ctx->height, dec_ctx->pix_fmt,
-                 dec_ctx->time_base.num, dec_ctx->time_base.den,
-                 dec_ctx->sample_aspect_ratio.num,
-                 dec_ctx->sample_aspect_ratio.den);
-
-        ret = avfilter_graph_create_filter(&buffersrc_ctx, buffersrc, "in",
-                                           args, NULL, filter_graph);
-        if (ret < 0) {
-            LOGE(NULL, AV_LOG_ERROR, "Cannot create buffer source\n");
-            goto end;
-        }
-
-        ret = avfilter_graph_create_filter(&buffersink_ctx, buffersink, "out",
-                                           NULL, NULL, filter_graph);
-        if (ret < 0) {
-            LOGE(NULL, AV_LOG_ERROR, "Cannot create buffer sink\n");
-            goto end;
-        }
-
-        ret = av_opt_set_bin(buffersink_ctx, "pix_fmts",
-                             (uint8_t*)&enc_ctx->pix_fmt, sizeof(enc_ctx->pix_fmt),
-                             AV_OPT_SEARCH_CHILDREN);
-        if (ret < 0) {
-            LOGE(NULL, AV_LOG_ERROR, "Cannot set output pixel format\n");
-            goto end;
-        }
-    } else if (dec_ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
-        buffersrc = avfilter_get_by_name("abuffer");
-        buffersink = avfilter_get_by_name("abuffersink");
-        if (!buffersrc || !buffersink) {
-            LOGE(NULL, AV_LOG_ERROR, "filtering source or sink element not found\n");
-            ret = AVERROR_UNKNOWN;
-            goto end;
-        }
-
-        if (!dec_ctx->channel_layout)
-            dec_ctx->channel_layout =
-                    av_get_default_channel_layout(dec_ctx->channels);
-        snprintf(args, sizeof(args),
-                 "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x%"PRIx64,
-                 dec_ctx->time_base.num, dec_ctx->time_base.den, dec_ctx->sample_rate,
-                 av_get_sample_fmt_name(dec_ctx->sample_fmt),
-                 dec_ctx->channel_layout);
-        ret = avfilter_graph_create_filter(&buffersrc_ctx, buffersrc, "in",
-                                           args, NULL, filter_graph);
-        if (ret < 0) {
-            LOGE(NULL, AV_LOG_ERROR, "Cannot create audio buffer source\n");
-            goto end;
-        }
-
-        ret = avfilter_graph_create_filter(&buffersink_ctx, buffersink, "out",
-                                           NULL, NULL, filter_graph);
-        if (ret < 0) {
-            LOGE(NULL, AV_LOG_ERROR, "Cannot create audio buffer sink\n");
-            goto end;
-        }
-
-        ret = av_opt_set_bin(buffersink_ctx, "sample_fmts",
-                             (uint8_t*)&enc_ctx->sample_fmt, sizeof(enc_ctx->sample_fmt),
-                             AV_OPT_SEARCH_CHILDREN);
-        if (ret < 0) {
-            LOGE(NULL, AV_LOG_ERROR, "Cannot set output sample format\n");
-            goto end;
-        }
-
-        ret = av_opt_set_bin(buffersink_ctx, "channel_layouts",
-                             (uint8_t*)&enc_ctx->channel_layout,
-                             sizeof(enc_ctx->channel_layout), AV_OPT_SEARCH_CHILDREN);
-        if (ret < 0) {
-            LOGE(NULL, AV_LOG_ERROR, "Cannot set output channel layout\n");
-            goto end;
-        }
-
-        ret = av_opt_set_bin(buffersink_ctx, "sample_rates",
-                             (uint8_t*)&enc_ctx->sample_rate, sizeof(enc_ctx->sample_rate),
-                             AV_OPT_SEARCH_CHILDREN);
-        if (ret < 0) {
-            LOGE(NULL, AV_LOG_ERROR, "Cannot set output sample rate\n");
-            goto end;
-        }
-    } else {
-        ret = AVERROR_UNKNOWN;
-        goto end;
-    }
-
-    /* Endpoints for the filter graph. */
-    outputs->name       = av_strdup("in");
-    outputs->filter_ctx = buffersrc_ctx;
-    outputs->pad_idx    = 0;
-    outputs->next       = NULL;
-
-    inputs->name       = av_strdup("out");
-    inputs->filter_ctx = buffersink_ctx;
-    inputs->pad_idx    = 0;
-    inputs->next       = NULL;
-
-    if (!outputs->name || !inputs->name) {
-        ret = AVERROR(ENOMEM);
-        goto end;
-    }
-
-    if ((ret = avfilter_graph_parse_ptr(filter_graph, filter_spec,
-                                        &inputs, &outputs, NULL)) < 0)
-        goto end;
-
-    if ((ret = avfilter_graph_config(filter_graph, NULL)) < 0)
-        goto end;
-
-    /* Fill FilteringContext */
-    fctx->buffersrc_ctx = buffersrc_ctx;
-    fctx->buffersink_ctx = buffersink_ctx;
-    fctx->filter_graph = filter_graph;
-
-    end:
-    avfilter_inout_free(&inputs);
-    avfilter_inout_free(&outputs);
-
-    return ret;
-}
-
-int init_filters(void) {
-    const char *filter_spec;
-    unsigned int i;
-    int ret;
-    filter_ctx = av_malloc_array(ifmt_ctx->nb_streams, sizeof(*filter_ctx));
-    if (!filter_ctx)
-        return AVERROR(ENOMEM);
-
-    for (i = 0; i < ifmt_ctx->nb_streams; i++) {
-        filter_ctx[i].buffersrc_ctx  = NULL;
-        filter_ctx[i].buffersink_ctx = NULL;
-        filter_ctx[i].filter_graph   = NULL;
-        if (!(ifmt_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO
-              || ifmt_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO))
-            continue;
-
-
-        if (ifmt_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
-            filter_spec = "null"; /* passthrough (dummy) filter for video */
-        else
-            filter_spec = "anull"; /* passthrough (dummy) filter for audio */
-        ret = init_filter(&filter_ctx[i], stream_ctx[i].dec_ctx,
-                          stream_ctx[i].enc_ctx, filter_spec);
-        if (ret)
-            return ret;
-    }
-    return 0;
-}
 
 /**
  * 写入数据.
@@ -1101,4 +935,85 @@ Java_com_jdpxiaoming_ffmpeg_1cmd_FFmpegCmd_dump_1Rtsp_1h265(JNIEnv *env, jclass 
     inputPath = (char *) (*env)->GetStringUTFChars(env, input, 0);
     outputPath = (char *) (*env)->GetStringUTFChars(env, output, 0);
     pthread_create(&pid_dump, NULL ,startRtspDownloadThread, NULL);
+}
+
+
+/**
+ * Write the header of the output file container.
+ * @param output_format_context Format context of the output file
+ * @return Error code (0 if successful)
+ */
+int write_output_file_header(AVFormatContext *output_format_context)
+{
+    int error;
+    if ((error = avformat_write_header(output_format_context, NULL)) < 0) {
+        fprintf(stderr, "Could not write output file header (error '%s')\n",
+                av_err2str(error));
+        return error;
+    }
+    return 0;
+}
+
+
+/**
+ * 初始化Audio Fifo queue .
+ * @param fifo
+ * @param output_codec_context
+ * @return
+ */
+int init_fifo(AVAudioFifo **fifo, AVCodecContext *output_codec_context){
+    /* Create the FIFO buffer based on the specified output sample format. */
+    if (!(*fifo = av_audio_fifo_alloc(output_codec_context->sample_fmt,
+                                      output_codec_context->channels, 1))) {
+        fprintf(stderr, "Could not allocate FIFO\n");
+        return AVERROR(ENOMEM);
+    }
+    return 0;
+
+}
+
+/**
+ * 初始化SwrContext重采样上下文
+ * @param input_codec_context
+ * @param output_codec_context
+ * @param resample_context
+ * @return
+ */
+int init_resampler(AVCodecContext *input_codec_context,AVCodecContext *output_codec_context,
+                   SwrContext **resample_context){
+    int error;
+
+    /*
+     * Create a resampler context for the conversion.
+     * Set the conversion parameters.
+     * Default channel layouts based on the number of channels
+     * are assumed for simplicity (they are sometimes not detected
+     * properly by the demuxer and/or decoder).
+     */
+    *resample_context = swr_alloc_set_opts(NULL,
+                                           av_get_default_channel_layout(output_codec_context->channels),
+                                           output_codec_context->sample_fmt,
+                                           output_codec_context->sample_rate,
+                                           av_get_default_channel_layout(input_codec_context->channels),
+                                           input_codec_context->sample_fmt,
+                                           input_codec_context->sample_rate,
+                                           0, NULL);
+    if (!*resample_context) {
+        fprintf(stderr, "Could not allocate resample context\n");
+        return AVERROR(ENOMEM);
+    }
+    /*
+    * Perform a sanity check so that the number of converted samples is
+    * not greater than the number of samples to be converted.
+    * If the sample rates differ, this case has to be handled differently
+    */
+    av_assert0(output_codec_context->sample_rate == input_codec_context->sample_rate);
+
+    /* Open the resampler with the specified parameters. */
+    if ((error = swr_init(*resample_context)) < 0) {
+        fprintf(stderr, "Could not open resample context\n");
+        swr_free(resample_context);
+        return error;
+    }
+    return 0;
 }
