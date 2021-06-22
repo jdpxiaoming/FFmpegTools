@@ -18,7 +18,7 @@
 allprojects {
     
     repositories {
-        maven { url "https://dl.bintray.com/media/maven" }
+        maven { url 'https://repo1.maven.org/maven2/'}
         google()
         jcenter()
     }
@@ -27,7 +27,7 @@ allprojects {
 
 - 引用
 ```
-implementation 'com.github.jdpxiaoming:ffmpeg-cmd:0.0.12'
+implementation 'io.github.jdpxiaoming:ffmpeg-cmd:0.0.13'
 ```
 
 - example:
