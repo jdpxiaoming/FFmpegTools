@@ -3,7 +3,6 @@ package com.example.ffmpegtools
 import android.Manifest
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import com.example.ffmpegtools.R
 import android.os.Build
 import androidx.core.content.PermissionChecker
 import android.content.pm.PackageManager
@@ -14,7 +13,6 @@ import android.widget.Toast
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegFactory
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegUtil
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegUtil.onCallBack
-import com.example.ffmpegtools.MainActivity
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegCmd
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
@@ -64,41 +62,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * 视频转码 flv->mp4.
-     * @param view
-     */
-    fun videoTransform(view: View?) {
-        val inputPath = "rtsp://116.63.183.179:5555/rtsp/a00287eb-5217-4982-b44d-70b428207a06"
-        val outputPath = Environment.getExternalStorageDirectory().absolutePath + "/Download/2021119.mp4"
-        val output = File(outputPath)
-        if (output.exists()) {
-            output.delete()
-        }
-        //cmds for ffmpeg flv->mp4.
-        var commands: Array<String?>? = null // FFmpegFactory.buildRtsp2Mp4(inputPath,outputPath);
-//        commands = FFmpegFactory.buildFlv2Mp4(inputPath, outputPath)
-        commands = FFmpegFactory.buildRtsp2Mp4(inputPath, outputPath)
-        FFmpegUtil.getInstance().enQueueTask(commands, 0, object : onCallBack {
-            override fun onStart() {
-                Log.i(TAG, " onStart2 # ")
-            }
-
-            override fun onFailure() {
-                Log.i(TAG, " onFailure2 # ")
-                Toast.makeText(this@MainActivity, "transcode failed2 ,please check your input file2 !", Toast.LENGTH_LONG).show()
-            }
-
-            override fun onComplete() {
-                Log.i(TAG, " onComplete2 # ")
-                Toast.makeText(this@MainActivity, "transcode successful2!", Toast.LENGTH_LONG).show()
-            }
-
-            override fun onProgress(progress: Float) {
-                Log.i(TAG, " onProgress2 # $progress")
-            }
-        })
-    }
 
 
     /**
@@ -139,6 +102,44 @@ class MainActivity : AppCompatActivity() {
         FFmpegUtil.getInstance().stopTask()
     }
 
+
+    /**
+     * 视频转码 flv->mp4.
+     * @param view
+     */
+    fun videoTransform(view: View?) {
+        val inputPath = "rtsp://116.63.183.179:5555/rtsp/a00287eb-5217-4982-b44d-70b428207a06"
+        val outputPath = Environment.getExternalStorageDirectory().absolutePath + "/Download/2021119.mp4"
+        val output = File(outputPath)
+        if (output.exists()) {
+            output.delete()
+        }
+        //cmds for ffmpeg flv->mp4.
+        var commands: Array<String?>? = null // FFmpegFactory.buildRtsp2Mp4(inputPath,outputPath);
+//        commands = FFmpegFactory.buildFlv2Mp4(inputPath, outputPath)
+        commands = FFmpegFactory.buildRtsp2Mp4(inputPath, outputPath)
+        FFmpegUtil.getInstance().enQueueTask(commands, 0, object : onCallBack {
+            override fun onStart() {
+                Log.i(TAG, " onStart2 # ")
+            }
+
+            override fun onFailure() {
+                Log.i(TAG, " onFailure2 # ")
+                Toast.makeText(this@MainActivity, "transcode failed2 ,please check your input file2 !", Toast.LENGTH_LONG).show()
+            }
+
+            override fun onComplete() {
+                Log.i(TAG, " onComplete2 # ")
+                Toast.makeText(this@MainActivity, "transcode successful2!", Toast.LENGTH_LONG).show()
+            }
+
+            override fun onProgress(progress: Float) {
+                Log.i(TAG, " onProgress2 # $progress")
+            }
+        })
+    }
+
+
     /**
      * flv或下载保存为mp4文件 .
      * @param view
@@ -162,5 +163,41 @@ class MainActivity : AppCompatActivity() {
         val input = rtsp_et.text.toString();
         val output = File(Environment.getExternalStorageDirectory(), "/poe/output73.mp4").absolutePath
         FFmpegCmd.dump_Rtsp_h265(input, output)
+    }
+
+    /**
+     * 添加视频水印，并输出.
+     */
+    fun addWaterMark(view: View?){
+        Log.i(TAG,"addWaterMark~start~!")
+        val inputVideo = "/storage/emulated/0/OvoparkVideo/video_1636700501191.mp4";
+        val inputWaterPic = "/storage/emulated/0/OvoparkVideo/tuya.png"
+        val output = File(Environment.getExternalStorageDirectory(), "/poe/output65.mp4").absolutePath
+
+        val commands: Array<String?>? = FFmpegFactory.addWaterMark(inputWaterPic,inputVideo, output)
+        var commandStr = ""
+        commands?.forEach { commandStr = "$commandStr $it" }
+        Log.e(TAG,"FFmpeg cmds:===>> $commandStr")
+
+        FFmpegUtil.getInstance().enQueueTask(commands, 0, object : onCallBack {
+            override fun onStart() {
+                Log.i(TAG, " onStart2 # ")
+            }
+
+            override fun onFailure() {
+                Log.i(TAG, " onFailure2 # ")
+                Toast.makeText(this@MainActivity, "transcode failed2 ,please check your input file2 !", Toast.LENGTH_LONG).show()
+            }
+
+            override fun onComplete() {
+                Log.i(TAG, " onComplete2 # ")
+                Toast.makeText(this@MainActivity, "transcode successful2!", Toast.LENGTH_LONG).show()
+            }
+
+            override fun onProgress(progress: Float) {
+                Log.i(TAG, " onProgress2 # $progress")
+            }
+        })
+
     }
 }

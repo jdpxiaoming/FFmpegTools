@@ -93,4 +93,15 @@
         app:layout_constraintBottom_toTopOf="@id/flv_btn"
         android:layout_marginBottom="20dp"
         />
+    <Button
+        android:id="@+id/h264_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="addWaterMark"
+        android:text="加水印转Mp4"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/rtsp_btn"
+        android:layout_marginBottom="20dp"
+        />
 </androidx.constraintlayout.widget.ConstraintLayout>
