@@ -163,6 +163,7 @@ public class FFmpegFactory {
     }
 
     public static String[] addWaterMark(String imageUrl, String videoUrl, String outputUrl) {
+//        # libx264 最快速度35秒
         String[] commands = new String[24];
         commands[0] = "ffmpeg";
         //input
@@ -192,6 +193,30 @@ public class FFmpegFactory {
         commands[22] = "-y";
         //output .
         commands[23] = outputUrl;
+
+
+        /*String[] commands = new String[16];
+        commands[0] = "ffmpeg";
+        //input
+        commands[1] = "-i";
+        commands[2] = videoUrl;
+        //water cover.
+        commands[3] = "-i";
+        commands[4] = imageUrl;
+        commands[5] = "-filter_complex";
+        commands[6] = "overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2";
+        commands[7] = "-r";
+        commands[8] = "15";
+        //override -vcodec h264 -f mp4
+        commands[9] = "-preset";
+        commands[10] = "ultrafast";
+        commands[11] = "-crf";
+        commands[12] = "28";
+        commands[13] = "-shortest";
+        commands[14] = "-y";
+        //output .
+        commands[15] = outputUrl;*/
+
         return commands;
     }
 
