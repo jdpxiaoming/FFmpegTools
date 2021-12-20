@@ -15,8 +15,8 @@
 #define HAVE_MMX2 HAVE_MMXEXT
 #define SWS_MAX_FILTER_SIZE 256
 #define ARCH_AARCH64 0
-#define ARCH_ALPHA 0
 #define ARCH_ARM 1
+#define ARCH_ALPHA 0
 #define ARCH_AVR32 0
 #define ARCH_AVR32_AP 0
 #define ARCH_AVR32_UC 0

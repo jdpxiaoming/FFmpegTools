@@ -12,7 +12,6 @@
 
 - [x] gif/image merge and so on .
 
-
 - 配置maven
 ```
 allprojects {
@@ -25,11 +24,23 @@ allprojects {
  }
 ```
 
-- 引用
+- 引用 32位
+
+```groovy
+implementation 'io.github.jdpxiaoming:ffmpeg-cmd:0.0.14'
 ```
-implementation 'io.github.jdpxiaoming:ffmpeg-cmd:0.0.13'
+- 64位
+
+```groovy
+implementation 'io.github.jdpxiaoming:ffmpeg-cmd64:0.0.14'
 ```
 
+- 编译64位需要修改`ffmpeg/config.h`
+  
+```bash
+#define ARCH_AARCH64 1
+#define ARCH_ARM 0
+```
 - example:
 
 ```
