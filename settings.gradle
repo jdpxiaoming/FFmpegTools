@@ -1,3 +1,4 @@
 rootProject.name='ffmpegtools'
 include ':app'
 include ':ffmpeg-cmd'
+include ':ffmpeg-cmd64'
