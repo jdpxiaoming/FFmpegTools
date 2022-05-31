@@ -108,8 +108,8 @@ class MainActivity : AppCompatActivity() {
      * @param view
      */
     fun videoTransform(view: View?) {
-        val inputPath = "rtsp://116.63.183.179:5555/rtsp/a00287eb-5217-4982-b44d-70b428207a06"
-        val outputPath = Environment.getExternalStorageDirectory().absolutePath + "/Download/2021119.mp4"
+        val inputPath = "http://113.31.102.114:7781/rtsp/499eff6b-2a91-4b54-945a-c7ea6c39d7bd.mp4"
+        val outputPath = Environment.getExternalStorageDirectory().absolutePath + "/Download/20220531.mp4"
         val output = File(outputPath)
         if (output.exists()) {
             output.delete()
@@ -117,7 +117,7 @@ class MainActivity : AppCompatActivity() {
         //cmds for ffmpeg flv->mp4.
         var commands: Array<String?>? = null // FFmpegFactory.buildRtsp2Mp4(inputPath,outputPath);
 //        commands = FFmpegFactory.buildFlv2Mp4(inputPath, outputPath)
-        commands = FFmpegFactory.buildRtsp2Mp4(inputPath, outputPath)
+        commands = FFmpegFactory.buildSimple(inputPath, outputPath)
         FFmpegUtil.getInstance().enQueueTask(commands, 0, object : onCallBack {
             override fun onStart() {
                 Log.i(TAG, " onStart2 # ")

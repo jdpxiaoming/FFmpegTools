@@ -21,6 +21,23 @@ public class FFmpegFactory {
     public static int titlePicHeight = 100;
     public static int titleDuration = 3;
 
+
+    /**
+     *  simple ffmpeg -i input_url out_path.
+     * @param inputPath
+     * @param outputPath
+     * @return
+     */
+    public static String[] buildSimple(String inputPath ,String outputPath){
+        String[] commands = new String[5];
+        commands[0] = "ffmpeg";
+        commands[1] = "-i";
+        commands[2] = inputPath;
+        commands[3] = "-y";
+        commands[4] = outputPath;
+        return commands;
+    }
+
     /**
      *  flv to mp4 .
      * @param inputPath

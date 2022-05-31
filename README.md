@@ -27,14 +27,14 @@ allprojects {
 - 引用 32位
 
 ```groovy
-implementation 'io.github.jdpxiaoming:ffmpeg-cmd:0.0.15'
+implementation 'io.github.jdpxiaoming:ffmpeg-cmd:0.0.16'
 ```
 - 64位
 > the java code in ffmpeg-cmd(32bit) lib,so if you must include ffmpeg-cmd and ffmpeg-cmd64 if you want use arm64 so,
 > then you can choose your arm abi :arm64-v8a
 
 ```groovy
-implementation 'io.github.jdpxiaoming:ffmpeg-cmd64:0.0.15'
+implementation 'io.github.jdpxiaoming:ffmpeg-cmd64:0.0.16'
 ```
 
 - 编译64位需要修改`ffmpeg/config.h`
