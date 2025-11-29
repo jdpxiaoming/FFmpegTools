@@ -165,6 +165,14 @@ void ffmpeg_failure(int errorCode){
 }
 
 
+/**
+ * 执行ffmpeg命令主要入口.
+ * @param env
+ * @param clazz
+ * @param cmdnum 命令长度.
+ * @param cmdline 命令集合.
+ * @return
+ */
 JNIEXPORT jint JNICALL
 Java_com_jdpxiaoming_ffmpeg_1cmd_FFmpegCmd_exec(JNIEnv *env, jclass clazz, jint cmdnum, jobjectArray cmdline) {
     LOGE("Java_com_jdpxiaoming_ffmpeg_1cmd_FFmpegCmd_exec execute!!!");
@@ -291,8 +299,12 @@ int downloadFile(const char* input, const char* output){
     // get he input streams count , video /audio .
     stream_mapping_size = ifmt_ctx->nb_streams;
 
-    stream_mapping = av_mallocz_array(stream_mapping_size,
+    //在FFmpeg 7.x及以后版本中，你应该使用av_mallocz和av_malloc_array的组合来替代av_mallocz_array
+    //av_mallocz_array 已被弃用，因为它在分配内存后立即将其清零，这在某些情况下是不必要的，并且可能导致性能问题。
+    stream_mapping = av_malloc_array(stream_mapping_size,
                                       sizeof(*stream_mapping));
+    memset(stream_mapping , 0 , stream_mapping_size * sizeof(stream_mapping[0]));
+
     if (!stream_mapping) {
         ret = AVERROR(ENOMEM);
         goto end;
@@ -576,7 +588,10 @@ int open_input_file(const char *filename) {
     }
 
     //init stream_ctx .
-    stream_ctx = av_mallocz_array(ifmt_ctx->nb_streams, sizeof(*stream_ctx));
+//    stream_ctx = av_mallocz_array(ifmt_ctx->nb_streams, sizeof(*stream_ctx));
+    stream_ctx = av_malloc_array(ifmt_ctx->nb_streams, sizeof(*stream_ctx));
+    memset(stream_ctx , 0 , ifmt_ctx->nb_streams * sizeof(*stream_ctx));
+
     if (!stream_ctx){
         LOGE("init stream_ctx error!");
         return AVERROR(ENOMEM);
@@ -661,15 +676,15 @@ int open_output_file(const char *filename) {
 
 
     for (i = 0; i < ifmt_ctx->nb_streams; i++) {
+        in_stream = ifmt_ctx->streams[i];
+        
         //construct the output stream .
-        out_stream = avformat_new_stream(ofmt_ctx, in_stream->codec->codec);
+        out_stream = avformat_new_stream(ofmt_ctx, NULL);
         if (!out_stream) {
             av_log(NULL, AV_LOG_ERROR, "Failed allocating output stream\n");
             LOGE("Failed allocating output stream\n");
             return AVERROR_UNKNOWN;
         }
-
-        in_stream = ifmt_ctx->streams[i];
         //decode context.
         dec_ctx = stream_ctx[i].dec_ctx;
         if(!dec_ctx){
@@ -750,8 +765,8 @@ int open_output_file(const char *filename) {
                 enc_ctx->time_base = av_inv_q(dec_ctx->framerate);
             } else {
                 enc_ctx->sample_rate = 44100;//dec_ctx->sample_rate;
-                enc_ctx->channel_layout = av_get_default_channel_layout(2);//dec_ctx->channel_layout;
-                enc_ctx->channels = 2;//av_get_channel_layout_nb_channels(enc_ctx->channel_layout);
+                // Use AVChannelLayout instead of deprecated channel_layout and channels
+                av_channel_layout_default(&enc_ctx->ch_layout, 2);
                 /* take first format from list of supported formats */
                 enc_ctx->sample_fmt = encoder->sample_fmts[0];
                 enc_ctx->time_base.den = dec_ctx->sample_rate;
@@ -833,37 +848,76 @@ int open_output_file(const char *filename) {
 int encode_write_frame(AVFrame *filt_frame, unsigned int stream_index, int *got_frame) {
     int ret;
     int got_frame_local;
-    AVPacket enc_pkt;
-    int (*enc_func)(AVCodecContext *, AVPacket *, const AVFrame *, int *) =
-    (ifmt_ctx->streams[stream_index]->codecpar->codec_type ==
-     AVMEDIA_TYPE_VIDEO) ? avcodec_encode_video2 : avcodec_encode_audio2;
+    AVPacket *enc_pkt;
+    AVCodecContext *enc_ctx = stream_ctx[stream_index].enc_ctx;
 
     if (!got_frame)
         got_frame = &got_frame_local;
 
     LOGE(NULL, AV_LOG_INFO, "Encoding frame\n");
-    /* encode filtered frame */
-    enc_pkt.data = NULL;
-    enc_pkt.size = 0;
-    av_init_packet(&enc_pkt);
-    ret = enc_func(stream_ctx[stream_index].enc_ctx, &enc_pkt,
-                   filt_frame, got_frame);
-    av_frame_free(&filt_frame);
-    if (ret < 0)
-        return ret;
-    if (!(*got_frame))
-        return 0;
+    
+    /* send frame to encoder */
+    ret = avcodec_send_frame(enc_ctx, filt_frame);
+    if (filt_frame) {
+        av_frame_free(&filt_frame);
+    }
+    if (ret < 0) {
+        if (ret == AVERROR_EOF) {
+            /* encoder already flushed, nothing to send */
+            *got_frame = 0;
+            return 0;
+        } else if (ret != AVERROR(EAGAIN)) {
+            LOGE("Error sending frame for encoding: %s\n", av_err2str(ret));
+            return ret;
+        }
+        /* EAGAIN means encoder needs output to be read first */
+    }
 
-    /* prepare packet for muxing */
-    enc_pkt.stream_index = stream_index;
-    av_packet_rescale_ts(&enc_pkt,
-                         stream_ctx[stream_index].enc_ctx->time_base,
-                         ofmt_ctx->streams[stream_index]->time_base);
+    /* receive encoded packets */
+    enc_pkt = av_packet_alloc();
+    if (!enc_pkt) {
+        LOGE("Could not allocate packet\n");
+        return AVERROR(ENOMEM);
+    }
 
-    LOGE(NULL, AV_LOG_DEBUG, "Muxing frame\n");
-    /* mux encoded frame */
-    ret = av_interleaved_write_frame(ofmt_ctx, &enc_pkt);
-    return ret;
+    *got_frame = 0;
+    ret = 0;
+    while (ret >= 0) {
+        ret = avcodec_receive_packet(enc_ctx, enc_pkt);
+        if (ret == AVERROR(EAGAIN)) {
+            /* need more input */
+            av_packet_free(&enc_pkt);
+            return 0;
+        } else if (ret == AVERROR_EOF) {
+            /* encoder fully flushed, no more output */
+            av_packet_free(&enc_pkt);
+            return 0;
+        } else if (ret < 0) {
+            LOGE("Error during encoding: %s\n", av_err2str(ret));
+            av_packet_free(&enc_pkt);
+            return ret;
+        }
+
+        *got_frame = 1;
+
+        /* prepare packet for muxing */
+        enc_pkt->stream_index = stream_index;
+        av_packet_rescale_ts(enc_pkt,
+                             enc_ctx->time_base,
+                             ofmt_ctx->streams[stream_index]->time_base);
+
+        LOGE(NULL, AV_LOG_DEBUG, "Muxing frame\n");
+        /* mux encoded frame */
+        ret = av_interleaved_write_frame(ofmt_ctx, enc_pkt);
+        av_packet_unref(enc_pkt);
+        if (ret < 0) {
+            av_packet_free(&enc_pkt);
+            return ret;
+        }
+    }
+
+    av_packet_free(&enc_pkt);
+    return 0;
 }
 
 int filter_encode_write_frame(AVFrame *frame, unsigned int stream_index) {
@@ -963,8 +1017,10 @@ int write_output_file_header(AVFormatContext *output_format_context)
  */
 int init_fifo(AVAudioFifo **fifo, AVCodecContext *output_codec_context){
     /* Create the FIFO buffer based on the specified output sample format. */
+    // Use ch_layout.nb_channels instead of deprecated channels
+    int nb_channels = output_codec_context->ch_layout.nb_channels;
     if (!(*fifo = av_audio_fifo_alloc(output_codec_context->sample_fmt,
-                                      output_codec_context->channels, 1))) {
+                                      nb_channels, 1))) {
         fprintf(stderr, "Could not allocate FIFO\n");
         return AVERROR(ENOMEM);
     }
@@ -982,6 +1038,7 @@ int init_fifo(AVAudioFifo **fifo, AVCodecContext *output_codec_context){
 int init_resampler(AVCodecContext *input_codec_context,AVCodecContext *output_codec_context,
                    SwrContext **resample_context){
     int error;
+    AVChannelLayout out_ch_layout = {0}, in_ch_layout = {0};
 
     /*
      * Create a resampler context for the conversion.
@@ -990,17 +1047,37 @@ int init_resampler(AVCodecContext *input_codec_context,AVCodecContext *output_co
      * are assumed for simplicity (they are sometimes not detected
      * properly by the demuxer and/or decoder).
      */
-    *resample_context = swr_alloc_set_opts(NULL,
-                                           av_get_default_channel_layout(output_codec_context->channels),
-                                           output_codec_context->sample_fmt,
-                                           output_codec_context->sample_rate,
-                                           av_get_default_channel_layout(input_codec_context->channels),
-                                           input_codec_context->sample_fmt,
-                                           input_codec_context->sample_rate,
-                                           0, NULL);
-    if (!*resample_context) {
+    // Copy channel layout from codec context
+    error = av_channel_layout_copy(&out_ch_layout, &output_codec_context->ch_layout);
+    if (error < 0) {
+        fprintf(stderr, "Could not copy output channel layout\n");
+        return error;
+    }
+
+    error = av_channel_layout_copy(&in_ch_layout, &input_codec_context->ch_layout);
+    if (error < 0) {
+        fprintf(stderr, "Could not copy input channel layout\n");
+        av_channel_layout_uninit(&out_ch_layout);
+        return error;
+    }
+
+    // Use swr_alloc_set_opts2 instead of deprecated swr_alloc_set_opts
+    error = swr_alloc_set_opts2(resample_context,
+                                &out_ch_layout,
+                                output_codec_context->sample_fmt,
+                                output_codec_context->sample_rate,
+                                &in_ch_layout,
+                                input_codec_context->sample_fmt,
+                                input_codec_context->sample_rate,
+                                0, NULL);
+    
+    // Clean up channel layouts
+    av_channel_layout_uninit(&out_ch_layout);
+    av_channel_layout_uninit(&in_ch_layout);
+
+    if (error < 0) {
         fprintf(stderr, "Could not allocate resample context\n");
-        return AVERROR(ENOMEM);
+        return error;
     }
     /*
     * Perform a sanity check so that the number of converted samples is

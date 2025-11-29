@@ -5,6 +5,7 @@
 #include <include/libswresample/swresample.h>
 #include "include/libavformat/avformat.h"
 #include "include/libavfilter/avfilter.h"
+#include "libavcodec/avcodec.h"
 /* Header for class JniTest_FFmpegCmd */
 
 #ifndef _Included_FFmpeg_Cmd

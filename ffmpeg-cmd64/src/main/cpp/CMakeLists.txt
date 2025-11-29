@@ -1,21 +1,24 @@
 cmake_minimum_required(VERSION 3.4.1)
-file(GLOB SOURCE ${CMAKE_SOURCE_DIR}/*.c ${CMAKE_SOURCE_DIR}/*.h)
-#add_library(native-lib
-#             SHARED
-#             native-lib.cpp
-#             )
+
+# 使用通配符收集源文件
+file(GLOB FFMPEG_SOURCES 
+    ${CMAKE_SOURCE_DIR}/ffmpeg/*.c
+    ${CMAKE_SOURCE_DIR}/ffmpeg/graph/*.c
+    ${CMAKE_SOURCE_DIR}/ffmpeg/resources/*.c
+    ${CMAKE_SOURCE_DIR}/ffmpeg/textformat/*.c
+    ${CMAKE_SOURCE_DIR}/include/libavdevice/*.c
+)
+file(GLOB ROOT_SOURCES 
+    ${CMAKE_SOURCE_DIR}/*.c
+)
 
 add_library( # Sets the name of the library.
         ffmpeg-cmd
         # Sets the library as a shared library.
         SHARED
         # Provides a relative path to your source file(s).
-        ${CMAKE_SOURCE_DIR}/ffmpeg/cmdutils.c
-        ${CMAKE_SOURCE_DIR}/ffmpeg/ffmpeg.c
-        ${CMAKE_SOURCE_DIR}/ffmpeg/ffmpeg_filter.c
-        ${CMAKE_SOURCE_DIR}/ffmpeg/ffmpeg_opt.c
-        ${CMAKE_SOURCE_DIR}/ffmpeg_cmd.c
-        ${CMAKE_SOURCE_DIR}/ffmpeg_thread.c
+        ${FFMPEG_SOURCES}
+        ${ROOT_SOURCES}
         )
 #加载动态库，作为本地库使用.
 add_library(ffmpeg

@@ -5,6 +5,7 @@
 #include <include/libswresample/swresample.h>
 #include "include/libavformat/avformat.h"
 #include "include/libavfilter/avfilter.h"
+#include "libavcodec/avcodec.h"
 /* Header for class JniTest_FFmpegCmd */
 
 #ifndef _Included_FFmpeg_Cmd
@@ -92,8 +93,8 @@ int write_output_file_header(AVFormatContext *output_format_context);
 
 int init_fifo(AVAudioFifo **fifo, AVCodecContext *output_codec_context);
 int init_resampler(AVCodecContext *input_codec_context,
-AVCodecContext *output_codec_context,
-        SwrContext **resample_context);
+                   AVCodecContext *output_codec_context,
+                   SwrContext **resample_context);
 
 
 int encode_write_frame(AVFrame *filt_frame, unsigned int stream_index, int *got_frame);

@@ -12,7 +12,6 @@ int num=0;
 void *thread(void *arg)
 {   //执行
     int result = ffmpeg_exec(num, argvs);
-//    ffmpeg_thread_exit(result);
     return ((void *)0);
 }
 /**
@@ -62,7 +61,7 @@ void ffmpeg_thread_cancel(){
         LOGE("cancel thread ntid");
         pthread_join(ntid, &ret);
         LOGE("set thread ntid NULL!");
-        ntid = NULL;
+        ntid = (pthread_t) NULL;
     }else{
         LOGE("thread ntid is NULl ,do nothing ~");
     }

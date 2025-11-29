@@ -1,6 +1,5 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
 
 android {
     compileSdkVersion COMPILE_TOOL_API as int
@@ -30,6 +29,12 @@ android {
         sourceCompatibility 1.8
         targetCompatibility 1.8
     }
+
+    buildFeatures {
+        viewBinding true
+    }
+
+    namespace "com.example.ffmpegtools"
 }
 
 dependencies {

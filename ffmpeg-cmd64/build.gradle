@@ -40,7 +40,9 @@ android {
             version "3.10.2"
         }
     }
-    ndkVersion = '20.0.5594570'
+    ndkVersion = '27.0.12077973'
+    namespace "com.poe.ffmpeg_cmd64"
+
 }
 
 dependencies {
@@ -53,8 +55,8 @@ dependencies {
 }
 
 //上传maven或者私有库中.
-uploadArchives{
+//uploadArchives{
+//
+//}
 
-}
-
-apply from: new File(rootProject.projectDir, "tools/gradle-on-demand.gradle");
+//apply from: new File(rootProject.projectDir, "tools/gradle-on-demand.gradle");
