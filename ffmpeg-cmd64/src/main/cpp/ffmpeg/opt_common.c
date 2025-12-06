@@ -1365,7 +1365,7 @@ end:
     return 0;
 }
 
-#if CONFIG_AVDEVICE
+#if 0 // CONFIG_AVDEVICE - disabled, not needed
 static void print_device_list(const AVDeviceInfoList *device_list)
 {
     // print devices
@@ -1428,7 +1428,9 @@ static int print_device_sinks(const AVOutputFormat *fmt, AVDictionary *opts)
     avdevice_free_list_devices(&device_list);
     return ret;
 }
+#endif /* CONFIG_AVDEVICE - disabled, not needed */
 
+#if 0 // CONFIG_AVDEVICE - disabled, not needed
 static int show_sinks_sources_parse_arg(const char *arg, char **dev, AVDictionary **opts)
 {
     int ret;
@@ -1524,4 +1526,19 @@ int show_sinks(void *optctx, const char *opt, const char *arg)
     av_log_set_level(error_level);
     return ret;
 }
-#endif /* CONFIG_AVDEVICE */
+#endif /* CONFIG_AVDEVICE - disabled, not needed */
+
+// Provide stub implementations when CONFIG_AVDEVICE is enabled but functions are disabled
+#if CONFIG_AVDEVICE
+int show_sources(void *optctx, const char *opt, const char *arg)
+{
+    av_log(NULL, AV_LOG_WARNING, "show_sources is disabled (avdevice not needed)\n");
+    return AVERROR(ENOSYS);
+}
+
+int show_sinks(void *optctx, const char *opt, const char *arg)
+{
+    av_log(NULL, AV_LOG_WARNING, "show_sinks is disabled (avdevice not needed)\n");
+    return AVERROR(ENOSYS);
+}
+#endif

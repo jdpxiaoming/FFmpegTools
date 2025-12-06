@@ -73,7 +73,7 @@ const AVTextWriter avtextwriter_buffer = {
     .writer_w8            = buffer_w8
 };
 
-int avtextwriter_create_buffer(AVTextWriterContext **pwctx, AVBPrint *buffer)
+__attribute__((used)) int avtextwriter_create_buffer(AVTextWriterContext **pwctx, AVBPrint *buffer)
 {
     BufferWriterContext *ctx;
     int ret;

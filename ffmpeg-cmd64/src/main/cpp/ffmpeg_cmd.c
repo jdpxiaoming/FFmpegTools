@@ -165,6 +165,14 @@ void ffmpeg_failure(int errorCode){
 }
 
 
+/**
+ * 执行ffmpeg命令主要入口.
+ * @param env
+ * @param clazz
+ * @param cmdnum 命令长度.
+ * @param cmdline 命令集合.
+ * @return
+ */
 JNIEXPORT jint JNICALL
 Java_com_jdpxiaoming_ffmpeg_1cmd_FFmpegCmd_exec(JNIEnv *env, jclass clazz, jint cmdnum, jobjectArray cmdline) {
     LOGE("Java_com_jdpxiaoming_ffmpeg_1cmd_FFmpegCmd_exec execute!!!");
@@ -291,8 +299,12 @@ int downloadFile(const char* input, const char* output){
     // get he input streams count , video /audio .
     stream_mapping_size = ifmt_ctx->nb_streams;
 
-    stream_mapping = av_mallocz_array(stream_mapping_size,
-                                      sizeof(*stream_mapping));
+    //在FFmpeg 7.x及以后版本中，你应该使用av_mallocz和av_malloc_array的组合来替代av_mallocz_array
+    //av_mallocz_array 已被弃用，因为它在分配内存后立即将其清零，这在某些情况下是不必要的，并且可能导致性能问题。
+    stream_mapping = av_malloc_array(stream_mapping_size,
+                                     sizeof(*stream_mapping));
+    memset(stream_mapping , 0 , stream_mapping_size * sizeof(stream_mapping[0]));
+
     if (!stream_mapping) {
         ret = AVERROR(ENOMEM);
         goto end;
@@ -405,7 +417,7 @@ int downloadFile(const char* input, const char* output){
     //写输出流（文件）的文件尾
     av_write_trailer(ofmt_ctx);
 
-end:
+    end:
 
     avformat_close_input(&ifmt_ctx);
 
@@ -494,8 +506,8 @@ int downloadFileAAc(const char* input, const char* output){
         //处理过滤器.
         /* remux this frame without reencoding */
         av_packet_rescale_ts(&packet,
-                ifmt_ctx->streams[stream_index]->time_base,
-                ofmt_ctx->streams[stream_index]->time_base);
+                             ifmt_ctx->streams[stream_index]->time_base,
+                             ofmt_ctx->streams[stream_index]->time_base);
         ret = av_interleaved_write_frame(ofmt_ctx, &packet);
         if (ret < 0)
             goto end;
@@ -576,7 +588,10 @@ int open_input_file(const char *filename) {
     }
 
     //init stream_ctx .
-    stream_ctx = av_mallocz_array(ifmt_ctx->nb_streams, sizeof(*stream_ctx));
+//    stream_ctx = av_mallocz_array(ifmt_ctx->nb_streams, sizeof(*stream_ctx));
+    stream_ctx = av_malloc_array(ifmt_ctx->nb_streams, sizeof(*stream_ctx));
+    memset(stream_ctx , 0 , ifmt_ctx->nb_streams * sizeof(*stream_ctx));
+
     if (!stream_ctx){
         LOGE("init stream_ctx error!");
         return AVERROR(ENOMEM);
@@ -662,7 +677,7 @@ int open_output_file(const char *filename) {
 
     for (i = 0; i < ifmt_ctx->nb_streams; i++) {
         in_stream = ifmt_ctx->streams[i];
-        
+
         //construct the output stream .
         out_stream = avformat_new_stream(ofmt_ctx, NULL);
         if (!out_stream) {
@@ -840,7 +855,7 @@ int encode_write_frame(AVFrame *filt_frame, unsigned int stream_index, int *got_
         got_frame = &got_frame_local;
 
     LOGE(NULL, AV_LOG_INFO, "Encoding frame\n");
-    
+
     /* send frame to encoder */
     ret = avcodec_send_frame(enc_ctx, filt_frame);
     if (filt_frame) {
@@ -1055,7 +1070,7 @@ int init_resampler(AVCodecContext *input_codec_context,AVCodecContext *output_co
                                 input_codec_context->sample_fmt,
                                 input_codec_context->sample_rate,
                                 0, NULL);
-    
+
     // Clean up channel layouts
     av_channel_layout_uninit(&out_ch_layout);
     av_channel_layout_uninit(&in_ch_layout);

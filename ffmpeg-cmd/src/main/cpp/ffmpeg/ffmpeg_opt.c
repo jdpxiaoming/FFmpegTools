@@ -2188,3 +2188,100 @@ const OptionDef options[] = {
 
     { NULL, },
 };
+
+#include "ffmpeg_mux.h"
+
+static Muxer *mux_alloc(void)
+{
+    Muxer *mux = av_mallocz(sizeof(*mux));
+    if (!mux)
+        return NULL;
+    return mux;
+}
+
+int of_open(const OptionsContext *o, const char *filename, Scheduler *sch)
+{
+    Muxer *mux;
+    OutputFile *of;
+    AVFormatContext *oc;
+    const AVOutputFormat *file_oformat = NULL;
+    int ret = 0;
+
+    mux = mux_alloc();
+    if (!mux)
+        return AVERROR(ENOMEM);
+
+    of = &mux->of;
+
+    if (o->format) {
+        if (!(file_oformat = av_guess_format(o->format, NULL, NULL))) {
+            av_log(mux, AV_LOG_FATAL, "Unknown output format: '%s'\n", o->format);
+            ret = AVERROR(EINVAL);
+            goto fail;
+        }
+    }
+
+    if (!strcmp(filename, "-"))
+        filename = "pipe:";
+
+    ret = avformat_alloc_output_context2(&oc, file_oformat, NULL, filename);
+    if (!oc) {
+        av_log(mux, AV_LOG_FATAL, "Could not create output context\n");
+        ret = AVERROR(ENOMEM);
+        goto fail;
+    }
+
+    mux->fc = oc;
+    of->url = av_strdup(filename);
+    if (!of->url) {
+        ret = AVERROR(ENOMEM);
+        goto fail;
+    }
+
+    ret = sch_add_mux(sch, muxer_thread, mux_check_init, mux, 0, DEFAULT_PACKET_THREAD_QUEUE_SIZE);
+    if (ret < 0)
+        goto fail;
+    mux->sch = sch;
+    mux->sch_idx = ret;
+
+    of->index = nb_output_files;
+    GROW_ARRAY(output_files, nb_output_files);
+    output_files[of->index] = of;
+
+    of->start_time = o->start_time;
+    of->recording_time = o->recording_time;
+    mux->limit_filesize = o->limit_filesize;
+
+    if (o->g->format_opts) {
+        ret = av_dict_copy(&mux->opts, o->g->format_opts, 0);
+        if (ret < 0)
+            goto fail;
+    }
+
+    return 0;
+
+fail:
+    if (mux) {
+        if (mux->fc)
+            avformat_free_context(mux->fc);
+        av_freep(&of->url);
+        av_freep(&mux);
+    }
+    return ret;
+}
+
+void of_enc_stats_close(void)
+{
+    // Close encoder stats files for all output files
+    for (int i = 0; i < nb_output_files; i++) {
+        OutputFile *of = output_files[i];
+        if (!of)
+            continue;
+        for (int j = 0; j < of->nb_streams; j++) {
+            OutputStream *ost = of->streams[j];
+            if (!ost)
+                continue;
+            // EncStats cleanup is handled in ost_free
+        }
+    }
+}

@@ -859,7 +859,7 @@ int encode_write_frame(AVFrame *filt_frame, unsigned int stream_index, int *got_
     /* send frame to encoder */
     ret = avcodec_send_frame(enc_ctx, filt_frame);
     if (filt_frame) {
-        av_frame_free(&filt_frame);
+    av_frame_free(&filt_frame);
     }
     if (ret < 0) {
         if (ret == AVERROR_EOF) {
@@ -868,7 +868,7 @@ int encode_write_frame(AVFrame *filt_frame, unsigned int stream_index, int *got_
             return 0;
         } else if (ret != AVERROR(EAGAIN)) {
             LOGE("Error sending frame for encoding: %s\n", av_err2str(ret));
-            return ret;
+        return ret;
         }
         /* EAGAIN means encoder needs output to be read first */
     }
@@ -887,7 +887,7 @@ int encode_write_frame(AVFrame *filt_frame, unsigned int stream_index, int *got_
         if (ret == AVERROR(EAGAIN)) {
             /* need more input */
             av_packet_free(&enc_pkt);
-            return 0;
+        return 0;
         } else if (ret == AVERROR_EOF) {
             /* encoder fully flushed, no more output */
             av_packet_free(&enc_pkt);
@@ -900,19 +900,19 @@ int encode_write_frame(AVFrame *filt_frame, unsigned int stream_index, int *got_
 
         *got_frame = 1;
 
-        /* prepare packet for muxing */
+    /* prepare packet for muxing */
         enc_pkt->stream_index = stream_index;
         av_packet_rescale_ts(enc_pkt,
                              enc_ctx->time_base,
-                             ofmt_ctx->streams[stream_index]->time_base);
+                         ofmt_ctx->streams[stream_index]->time_base);
 
-        LOGE(NULL, AV_LOG_DEBUG, "Muxing frame\n");
-        /* mux encoded frame */
+    LOGE(NULL, AV_LOG_DEBUG, "Muxing frame\n");
+    /* mux encoded frame */
         ret = av_interleaved_write_frame(ofmt_ctx, enc_pkt);
         av_packet_unref(enc_pkt);
         if (ret < 0) {
             av_packet_free(&enc_pkt);
-            return ret;
+    return ret;
         }
     }
 
@@ -1064,12 +1064,12 @@ int init_resampler(AVCodecContext *input_codec_context,AVCodecContext *output_co
     // Use swr_alloc_set_opts2 instead of deprecated swr_alloc_set_opts
     error = swr_alloc_set_opts2(resample_context,
                                 &out_ch_layout,
-                                output_codec_context->sample_fmt,
-                                output_codec_context->sample_rate,
+                                           output_codec_context->sample_fmt,
+                                           output_codec_context->sample_rate,
                                 &in_ch_layout,
-                                input_codec_context->sample_fmt,
-                                input_codec_context->sample_rate,
-                                0, NULL);
+                                           input_codec_context->sample_fmt,
+                                           input_codec_context->sample_rate,
+                                           0, NULL);
     
     // Clean up channel layouts
     av_channel_layout_uninit(&out_ch_layout);

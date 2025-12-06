@@ -1,16 +1,27 @@
 cmake_minimum_required(VERSION 3.4.1)
 
 # 使用通配符收集源文件
+# 注意：include 目录下的 .c 文件不应该被直接编译，它们是通过 #include 方式被包含的
 file(GLOB FFMPEG_SOURCES 
     ${CMAKE_SOURCE_DIR}/ffmpeg/*.c
     ${CMAKE_SOURCE_DIR}/ffmpeg/graph/*.c
     ${CMAKE_SOURCE_DIR}/ffmpeg/resources/*.c
     ${CMAKE_SOURCE_DIR}/ffmpeg/textformat/*.c
-    ${CMAKE_SOURCE_DIR}/include/libavdevice/*.c
 )
+
+# 排除被其他文件包含的源文件，避免重复定义
+list(REMOVE_ITEM FFMPEG_SOURCES 
+    ${CMAKE_SOURCE_DIR}/ffmpeg/textformat/tw_buffer.c
+    ${CMAKE_SOURCE_DIR}/ffmpeg/ffmpeg_enc.c  # 被 ffmpeg_dec.c 包含
+)
+
 file(GLOB ROOT_SOURCES 
     ${CMAKE_SOURCE_DIR}/*.c
 )
+
+# 确保所有源文件都被包含（用于调试）
+message(STATUS "FFMPEG_SOURCES: ${FFMPEG_SOURCES}")
+# message(STATUS "ROOT_SOURCES: ${ROOT_SOURCES}")
 
 add_library( # Sets the name of the library.
         ffmpeg-cmd

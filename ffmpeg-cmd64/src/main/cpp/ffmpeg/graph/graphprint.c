@@ -41,6 +41,7 @@
 #include "libavutil/hwcontext.h"
 #include "../textformat/avtextformat.h"
 #include "../textformat/tf_mermaid.h"
+#include "../textformat/tw_buffer.c"
 #include "../resources/resman.h"
 
 typedef enum {

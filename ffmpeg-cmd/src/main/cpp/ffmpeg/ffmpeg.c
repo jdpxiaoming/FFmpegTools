@@ -83,6 +83,7 @@
 #include "ffmpeg_sched.h"
 #include "ffmpeg_utils.h"
 #include "graph/graphprint.h"
+#include "android_log.h"
 
 const char program_name[] = "ffmpeg";
 const int program_birth_year = 2000;
@@ -341,7 +342,7 @@ static void ffmpeg_cleanup(int ret)
     av_freep(&vstats_filename);
     of_enc_stats_close();
 
-    hw_device_free_all();
+//    hw_device_free_all();
 
     av_freep(&filter_nbthreads);
 
@@ -361,15 +362,15 @@ static void ffmpeg_cleanup(int ret)
     } else if (ret && atomic_load(&transcode_init_done)) {
         av_log(NULL, AV_LOG_INFO, "Conversion failed!\n");
     }
+    term_exit();
+    ffmpeg_exited = 1;
+
 
     nb_filtergraphs = 0;
     nb_output_files = 0;
 //    nb_output_streams = 0;
     nb_input_files = 0;
 //    nb_input_streams = 0;
-
-    term_exit();
-    ffmpeg_exited = 1;
 }
 
 OutputStream *ost_iter(OutputStream *prev)
@@ -573,6 +574,12 @@ void update_benchmark(const char *fmt, ...)
     }
 }
 
+/**
+ * 打印日志信息 .
+ * @param is_last_report
+ * @param timer_start
+ * @param cur_time
+ */
 static void print_report(int is_last_report, int64_t timer_start, int64_t cur_time, int64_t pts)
 {
     AVBPrint buf, buf_script;
@@ -650,16 +657,14 @@ static void print_report(int is_last_report, int64_t timer_start, int64_t cur_ti
 
     us    = FFABS64U(pts) % AV_TIME_BASE;
     secs  = FFABS64U(pts) / AV_TIME_BASE % 60;
+    // 获取已处理的时长
+    mss = secs + ((float) us / AV_TIME_BASE);
     mins  = FFABS64U(pts) / AV_TIME_BASE / 60 % 60;
     hours = FFABS64U(pts) / AV_TIME_BASE / 3600;
     hours_sign = (pts < 0) ? "-" : "";
 
-    secs = FFABS(pts) / AV_TIME_BASE;
-    // 获取已处理的时长
-    mss = secs + ((float) us / AV_TIME_BASE);
 
-    // 调用ffmpeg_progress将进度传到Java层，代码后面定义
-    ffmpeg_progress(mss);
+
 
 
     bitrate = pts != AV_NOPTS_VALUE && pts && total_size >= 0 ? total_size * 8 / (pts / 1000.0) : -1;
@@ -673,6 +678,10 @@ static void print_report(int is_last_report, int64_t timer_start, int64_t cur_ti
         av_bprintf(&buf, "%s%02"PRId64":%02d:%02d.%02d ",
                    hours_sign, hours, mins, secs, (100 * us) / AV_TIME_BASE);
     }
+
+
+    // 调用ffmpeg_progress将进度传到Java层，代码后面定义
+    ffmpeg_progress(mss);
 
     if (bitrate < 0) {
         av_bprintf(&buf, "bitrate=N/A");
@@ -921,6 +930,7 @@ static int transcode(Scheduler *sch)
         int64_t cur_time= av_gettime_relative();
 
         if (received_nb_signals)
+
             break;
 
         /* if 'q' pressed, exits */
@@ -992,6 +1002,19 @@ static int64_t getmaxrss(void)
 #endif
 }
 
+static void log_callback_test2(void *ptr, int level, const char *fmt, va_list vl)
+{
+    va_list vl2;
+    char *line = malloc(128 * sizeof(char));
+    static int print_prefix = 1;
+    va_copy(vl2, vl);
+    av_log_format_line(ptr, level, fmt, vl2, line, 128, &print_prefix);
+    va_end(vl2);
+    line[127] = '\0';
+    LOGE("%s", line);
+    free(line);
+}
+
 int ffmpeg_exec(int argc, char **argv)
 {
     Scheduler *sch = NULL;
@@ -1003,10 +1026,10 @@ int ffmpeg_exec(int argc, char **argv)
 
     setvbuf(stderr,NULL,_IONBF,0); /* win32 runtime needs this */
 
-    av_log_set_flags(AV_LOG_SKIP_REPEATED);
-    parse_loglevel(argc, argv, options);
-
-#if CONFIG_AVDEVICE
+//    av_log_set_flags(AV_LOG_SKIP_REPEATED);
+//    parse_loglevel(argc, argv, options);
+    av_log_set_callback(log_callback_test2);
+#if 0 // CONFIG_AVDEVICE - disabled, not needed
     avdevice_register_all();
 #endif
     avformat_network_init();
@@ -1038,7 +1061,9 @@ int ffmpeg_exec(int argc, char **argv)
     }
 
     current_time = ti = get_benchmark_time_stamps();
+
     ret = transcode(sch);
+
     if (ret >= 0 && do_benchmark) {
         int64_t utime, stime, rtime;
         current_time = get_benchmark_time_stamps();
@@ -1063,6 +1088,16 @@ finish:
 
     av_log(NULL, AV_LOG_VERBOSE, "\n");
     av_log(NULL, AV_LOG_VERBOSE, "Exiting with exit code %d\n", ret);
-
+    // return之前增加：
+    nb_filtergraphs = 0;
+    progress_avio = NULL;
+//    input_streams = NULL;
+//    nb_input_streams = 0;
+    input_files = NULL;
+    nb_input_files = 0;
+//    output_streams = NULL;
+//    nb_output_streams = 0;
+    output_files = NULL;
+    nb_output_files = 0;
     return ret;
 }
