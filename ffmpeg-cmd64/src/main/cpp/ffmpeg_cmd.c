@@ -247,7 +247,9 @@ Java_com_jdpxiaoming_ffmpeg_1cmd_FFmpegCmd_dump_1stream(JNIEnv *env, jclass claz
  * @return
  */
 int downloadFile(const char* input, const char* output){
-    LOGE("download file input:%s ,%s", input , output);
+    LOGE("========== downloadFile START ==========");
+    LOGE("Input: %s", input);
+    LOGE("Output: %s", output);
     AVOutputFormat *ofmt = NULL;
     AVFormatContext *ifmt_ctx = NULL, *ofmt_ctx = NULL;
     AVPacket pkt;
@@ -256,6 +258,8 @@ int downloadFile(const char* input, const char* output){
     int stream_index = 0;
     int * stream_mapping = NULL;
     int stream_mapping_size = 0;
+    int packet_count = 0;
+    int64_t total_bytes_written = 0;
     //开始解码tag
     isDownloading = 1;
 
@@ -267,34 +271,42 @@ int downloadFile(const char* input, const char* output){
     AVDictionary* inputDic = NULL ;
 //    memset(inputDic ,0, sizeof(inputDic));
     av_dict_set(&inputDic, "rtsp_transport", "tcp", 0);
+    LOGE("RTSP transport set to TCP");
 
 
     //use avformat to open the input file .
+    LOGE("Opening input file: %s", in_filename);
     if ((ret = avformat_open_input(&ifmt_ctx, in_filename, 0, &inputDic)) < 0) {
         fprintf(stderr, "Could not open input file '%s'", in_filename);
-        LOGE("Failed to retrieve input stream information %s",in_filename);
+        LOGE("ERROR: Failed to open input file '%s', error: %s (%d)", in_filename, av_err2str(ret), ret);
         goto end;
     }
+    LOGE("Input file opened successfully");
 
     //get stream head info from the av_format_context: ifmt_ctx .
+    LOGE("Finding stream information...");
     if ((ret = avformat_find_stream_info(ifmt_ctx, 0)) < 0) {
         fprintf(stderr, "Failed to retrieve input stream information");
-        LOGE("Failed to retrieve input stream information");
+        LOGE("ERROR: Failed to retrieve input stream information, error: %s (%d)", av_err2str(ret), ret);
         goto end;
     }
+    LOGE("Stream information found: %d streams", ifmt_ctx->nb_streams);
 
     //check the input foramt protocal ? rtsp/file/http/htts/rtmp? .
     //no , it is an log print to console .and so on .将流的一些配置信息保存在输入环境信息
     av_dump_format(ifmt_ctx, 0, in_filename, 0);
+    LOGE("Input format: %s, duration: %lld", ifmt_ctx->iformat->name, ifmt_ctx->duration);
 
     //init the output AvformatCotnext with out_filename.据输出flv文件名称和路径得到输出环境信息
+    LOGE("Creating output context for: %s", out_filename);
     avformat_alloc_output_context2(&ofmt_ctx, NULL, NULL, out_filename);
     if (!ofmt_ctx) {
         fprintf(stderr, "Could not create output context\n");
-        LOGE("Could not create output context\n");
+        LOGE("ERROR: Could not create output context for '%s'", out_filename);
         ret = AVERROR_UNKNOWN;
         goto end;
     }
+    LOGE("Output context created, format: %s", ofmt_ctx->oformat->name);
 
     // get he input streams count , video /audio .
     stream_mapping_size = ifmt_ctx->nb_streams;
@@ -315,27 +327,32 @@ int downloadFile(const char* input, const char* output){
 
 
     //test audio or video stream . write the codecparinfo to outfile .
+    LOGE("Processing %d input streams...", ifmt_ctx->nb_streams);
     for (i = 0; i < ifmt_ctx->nb_streams; i++) {
         AVStream *out_stream;
         AVStream *in_stream = ifmt_ctx->streams[i];
         AVCodecParameters *in_codecpar = in_stream->codecpar;
+        const char *codec_type_name = av_get_media_type_string(in_codecpar->codec_type);
+        LOGE("Stream %d: type=%s, codec_id=%d", i, codec_type_name ? codec_type_name : "unknown", in_codecpar->codec_id);
 
         //filter useless streams .
         if (in_codecpar->codec_type != AVMEDIA_TYPE_AUDIO &&
             in_codecpar->codec_type != AVMEDIA_TYPE_VIDEO &&
             in_codecpar->codec_type != AVMEDIA_TYPE_SUBTITLE) {
             stream_mapping[i] = -1;
+            LOGE("Stream %d: skipped (not audio/video/subtitle)", i);
             continue;
         }
 
 
         stream_mapping[i] = stream_index++;
+        LOGE("Stream %d: mapped to output stream %d", i, stream_mapping[i]);
 
         //create an output stream . maybe fileStream.
         out_stream = avformat_new_stream(ofmt_ctx, NULL);
         if (!out_stream) {
             fprintf(stderr, "Failed allocating output stream\n");
-            LOGE("Failed allocating output stream\n");
+            LOGE("ERROR: Failed allocating output stream %d", i);
             ret = AVERROR_UNKNOWN;
             goto end;
         }
@@ -344,41 +361,61 @@ int downloadFile(const char* input, const char* output){
         ret = avcodec_parameters_copy(out_stream->codecpar, in_codecpar);
         if (ret < 0) {
             fprintf(stderr, "Failed to copy codec parameters\n");
-            LOGE("Failed to copy codec parameters\n");
+            LOGE("ERROR: Failed to copy codec parameters for stream %d, error: %s (%d)", i, av_err2str(ret), ret);
             goto end;
         }
         out_stream->codecpar->codec_tag = 0;
+        LOGE("Stream %d: codec parameters copied successfully", i);
     }
+    LOGE("Total output streams created: %d", stream_index);
 
     //print output streawm codec  info to file or console.
     av_dump_format(ofmt_ctx, 0, out_filename, 1);
 
     //open output file failed .
     if (!(ofmt->flags & AVFMT_NOFILE)) {
+        LOGE("Opening output file: %s", out_filename);
         ret = avio_open(&ofmt_ctx->pb, out_filename, AVIO_FLAG_WRITE);
         if (ret < 0) {
             fprintf(stderr, "Could not open output file '%s'", out_filename);
-            LOGE("Could not open output file '%s'", out_filename);
+            LOGE("ERROR: Could not open output file '%s', error: %s (%d)", out_filename, av_err2str(ret), ret);
             goto end;
         }
+        LOGE("Output file opened successfully");
+    } else {
+        LOGE("Output format does not require file I/O");
     }
 
     //write file header ex:Mp4 head info .
+    LOGE("Writing output file header...");
     ret = avformat_write_header(ofmt_ctx, NULL);
     if (ret < 0) {
         fprintf(stderr, "Error occurred when opening output file\n");
-        LOGE("Error occurred when opening output file\n");
+        LOGE("ERROR: Failed to write output file header, error: %s (%d)", av_err2str(ret), ret);
         goto end;
     }
+    LOGE("Output file header written successfully");
 
     //open a looper .
+    LOGE("Starting packet reading loop...");
     while (isDownloading) {
         AVStream *in_stream, *out_stream;
 
         //get AVPacket .
         ret = av_read_frame(ifmt_ctx, &pkt);
-        if (ret < 0)
+        if (ret < 0) {
+            if (ret == AVERROR_EOF) {
+                LOGE("End of input stream reached");
+            } else {
+                LOGE("ERROR: Failed to read frame, error: %s (%d)", av_err2str(ret), ret);
+            }
             break;
+        }
+
+        packet_count++;
+        if (packet_count % 100 == 0) {
+            LOGE("Processed %d packets, total bytes: %lld", packet_count, total_bytes_written);
+        }
 
         //get the input stream .
         in_stream  = ifmt_ctx->streams[pkt.stream_index];
@@ -407,33 +444,57 @@ int downloadFile(const char* input, const char* output){
         ret = av_interleaved_write_frame(ofmt_ctx, &pkt);
         if (ret < 0) {
             fprintf(stderr, "Error muxing packet\n");
-            LOGE("Error muxing packet\n");
+            LOGE("ERROR: Failed to mux packet #%d, error: %s (%d)", packet_count, av_err2str(ret), ret);
             break;
         }
+        total_bytes_written += pkt.size;
         av_packet_unref(&pkt);
     }
 
+    LOGE("Packet reading loop ended. Total packets: %d, Total bytes: %lld", packet_count, total_bytes_written);
+
     //write the file end trailer .
     //写输出流（文件）的文件尾
-    av_write_trailer(ofmt_ctx);
+    LOGE("Writing output file trailer...");
+    ret = av_write_trailer(ofmt_ctx);
+    if (ret < 0) {
+        LOGE("ERROR: Failed to write trailer, error: %s (%d)", av_err2str(ret), ret);
+    } else {
+        LOGE("Output file trailer written successfully");
+    }
 
     end:
+    LOGE("========== downloadFile CLEANUP ==========");
 
-    avformat_close_input(&ifmt_ctx);
+    if (ifmt_ctx) {
+        LOGE("Closing input context...");
+        avformat_close_input(&ifmt_ctx);
+    }
 
     /* close output */
-    if (ofmt_ctx && !(ofmt->flags & AVFMT_NOFILE))
-        avio_closep(&ofmt_ctx->pb);
-    avformat_free_context(ofmt_ctx);
+    if (ofmt_ctx) {
+        if (!(ofmt->flags & AVFMT_NOFILE)) {
+            LOGE("Closing output file I/O...");
+            avio_closep(&ofmt_ctx->pb);
+        }
+        LOGE("Freeing output context...");
+        avformat_free_context(ofmt_ctx);
+    }
 
-    av_freep(&stream_mapping);
+    if (stream_mapping) {
+        av_freep(&stream_mapping);
+    }
 
     if (ret < 0 && ret != AVERROR_EOF) {
         fprintf(stderr, "Error occurred: %s\n", av_err2str(ret));
-        LOGE( "Error occurred: %s\n", av_err2str(ret));
+        LOGE("ERROR: downloadFile failed with error: %s (%d)", av_err2str(ret), ret);
+        LOGE("========== downloadFile FAILED ==========");
         return 1;
     }
 
+    LOGE("========== downloadFile SUCCESS ==========");
+    LOGE("Total packets processed: %d", packet_count);
+    LOGE("Total bytes written: %lld", total_bytes_written);
     return 0;
 }
 
@@ -446,7 +507,9 @@ int downloadFile(const char* input, const char* output){
  * @return
  */
 int downloadFileAAc(const char* input, const char* output){
-    LOGE("downloadFileAAc# download file input :%s , output: %s", input , output);
+    LOGE("========== downloadFileAAc START ==========");
+    LOGE("Input: %s", input);
+    LOGE("Output: %s", output);
 //    AVAudioFifo
     int ret;
     //初始化一个空的packet并手动赋值给data和size这两个变量.
@@ -457,6 +520,8 @@ int downloadFileAAc(const char* input, const char* output){
     unsigned int stream_index;
     unsigned int i;
     int got_frame;
+    int packet_count = 0;
+    int64_t total_bytes_written = 0;
     //预定义一个空方法. 函数指针.
     int (*dec_func)(AVCodecContext *, AVFrame *, int *, const AVPacket *);
     //音频转换上下文.
@@ -467,98 +532,182 @@ int downloadFileAAc(const char* input, const char* output){
     isDownloading = 1;
 
     //打开输入流.
-    if ((ret = open_input_file(input)) < 0)
+    LOGE("Opening input file: %s", input);
+    if ((ret = open_input_file(input)) < 0) {
+        LOGE("ERROR: Failed to open input file '%s', error: %s (%d)", input, av_err2str(ret), ret);
         goto end;
+    }
+    LOGE("Input file opened successfully, streams: %d", ifmt_ctx ? ifmt_ctx->nb_streams : 0);
+    
     //打开输出流.
-    if ((ret = open_output_file(output)) < 0)
+    LOGE("Opening output file: %s", output);
+    if ((ret = open_output_file(output)) < 0) {
+        LOGE("ERROR: Failed to open output file '%s', error: %s (%d)", output, av_err2str(ret), ret);
         goto end;
+    }
+    LOGE("Output file opened successfully");
+    
     //初始化过滤器
     /* Initialize the resampler to be able to convert audio sample formats. */
-    if (init_resampler(ifmt_ctx, ofmt_ctx, &resample_context))
+    LOGE("Initializing resampler...");
+    if (init_resampler(ifmt_ctx, ofmt_ctx, &resample_context)) {
+        LOGE("ERROR: Failed to initialize resampler");
         goto end;
+    }
+    LOGE("Resampler initialized successfully");
+    
     /* Initialize the FIFO buffer to store audio samples to be encoded. */
-    if (init_fifo(&fifo, ofmt_ctx))
+    LOGE("Initializing FIFO buffer...");
+    if (init_fifo(&fifo, ofmt_ctx)) {
+        LOGE("ERROR: Failed to initialize FIFO buffer");
         goto end;
+    }
+    LOGE("FIFO buffer initialized successfully");
 
-    /* Write the header of the output file container. */
-    if (write_output_file_header(ofmt_ctx))
-        goto end;
+    /* Note: open_output_file already writes the header, so we skip this step */
+    LOGE("Output file header already written in open_output_file");
 
 
     /* read all packets */
+    LOGE("Starting packet reading loop...");
     while (isDownloading) {
 
         /* Use the encoder's desired frame size for processing. */
-        if ((ret = av_read_frame(ifmt_ctx, &packet)) < 0)
+        if ((ret = av_read_frame(ifmt_ctx, &packet)) < 0) {
+            if (ret == AVERROR_EOF) {
+                LOGE("End of input stream reached");
+            } else {
+                LOGE("ERROR: Failed to read frame, error: %s (%d)", av_err2str(ret), ret);
+            }
             break;
+        }
         stream_index = packet.stream_index;
+        packet_count++;
+        
+        if (packet_count % 100 == 0) {
+            LOGE("Processed %d packets, total bytes: %lld", packet_count, total_bytes_written);
+        }
 
         //获取解码器上下文.
-        AVCodecContext* dec_ctx = stream_ctx[i].dec_ctx;
-        //计算一个framesize.
-        const int output_frame_size = dec_ctx->frame_size;
+        if (stream_index < ifmt_ctx->nb_streams && stream_ctx && stream_ctx[stream_index].dec_ctx) {
+            AVCodecContext* dec_ctx = stream_ctx[stream_index].dec_ctx;
+            //计算一个framesize.
+            const int output_frame_size = dec_ctx->frame_size;
+        }
 
         type = ifmt_ctx->streams[packet.stream_index]->codecpar->codec_type;
-        av_log(NULL, AV_LOG_DEBUG, "Demuxer gave frame of stream_index %u\n",
-               stream_index);
-        LOGE("Demuxer gave frame of stream_index %u\n",
-             stream_index);
+        const char *codec_type_name = av_get_media_type_string(type);
+        LOGI("Demuxer gave frame of stream_index %u, type=%s", stream_index, codec_type_name ? codec_type_name : "unknown");
+        
         //处理过滤器.
         /* remux this frame without reencoding */
         av_packet_rescale_ts(&packet,
                              ifmt_ctx->streams[stream_index]->time_base,
                              ofmt_ctx->streams[stream_index]->time_base);
         ret = av_interleaved_write_frame(ofmt_ctx, &packet);
-        if (ret < 0)
+        if (ret < 0) {
+            LOGE("ERROR: Failed to mux packet #%d, error: %s (%d)", packet_count, av_err2str(ret), ret);
             goto end;
+        }
+        total_bytes_written += packet.size;
         av_packet_unref(&packet);
     }
+    
+    LOGE("Packet reading loop ended. Total packets: %d, Total bytes: %lld", packet_count, total_bytes_written);
 
     /* flush filters and encoders */
+    LOGE("Flushing filters and encoders...");
     for (i = 0; i < ifmt_ctx->nb_streams; i++) {
         /* flush filter */
-        if (!filter_ctx[i].filter_graph)
+        if (!filter_ctx[i].filter_graph) {
+            LOGI("Stream %u: no filter graph, skipping filter flush", i);
             continue;
+        }
+        LOGI("Flushing filter for stream %u", i);
         ret = filter_encode_write_frame(NULL, i);
         if (ret < 0) {
-            av_log(NULL, AV_LOG_ERROR, "Flushing filter failed\n");
-            LOGE("Flushing filter failed\n");
+            LOGE("ERROR: Flushing filter failed for stream %u, error: %s (%d)", i, av_err2str(ret), ret);
             goto end;
         }
 
         /* flush encoder */
+        LOGI("Flushing encoder for stream %u", i);
         ret = flush_encoder(i);
         if (ret < 0) {
-            av_log(NULL, AV_LOG_ERROR, "Flushing encoder failed\n");
-            LOGE("Flushing encoder failed\n");
+            LOGE("ERROR: Flushing encoder failed for stream %u, error: %s (%d)", i, av_err2str(ret), ret);
             goto end;
         }
     }
+    LOGE("Filters and encoders flushed successfully");
 
-    av_write_trailer(ofmt_ctx);
+    LOGE("Writing output file trailer...");
+    ret = av_write_trailer(ofmt_ctx);
+    if (ret < 0) {
+        LOGE("ERROR: Failed to write trailer, error: %s (%d)", av_err2str(ret), ret);
+    } else {
+        LOGE("Output file trailer written successfully");
+    }
+    
     end:
+    LOGE("========== downloadFileAAc CLEANUP ==========");
+    
+    LOGE("Cleaning up resources...");
     av_packet_unref(&packet);
     av_frame_free(&frame);
-    for (i = 0; i < ifmt_ctx->nb_streams; i++) {
-        avcodec_free_context(&stream_ctx[i].dec_ctx);
-        if (ofmt_ctx && ofmt_ctx->nb_streams > i && ofmt_ctx->streams[i] && stream_ctx[i].enc_ctx)
-            avcodec_free_context(&stream_ctx[i].enc_ctx);
-        if (filter_ctx && filter_ctx[i].filter_graph)
-            avfilter_graph_free(&filter_ctx[i].filter_graph);
+    
+    if (resample_context) {
+        LOGE("Freeing resampler context...");
+        swr_free(&resample_context);
     }
-    av_free(filter_ctx);
-    av_free(stream_ctx);
-    avformat_close_input(&ifmt_ctx);
-    if (ofmt_ctx && !(ofmt_ctx->oformat->flags & AVFMT_NOFILE))
-        avio_closep(&ofmt_ctx->pb);
-    avformat_free_context(ofmt_ctx);
+    
+    if (fifo) {
+        LOGE("Freeing FIFO buffer...");
+        av_audio_fifo_free(fifo);
+    }
+    
+    if (ifmt_ctx) {
+        LOGE("Closing input context...");
+        for (i = 0; i < ifmt_ctx->nb_streams; i++) {
+            if (stream_ctx && stream_ctx[i].dec_ctx) {
+                avcodec_free_context(&stream_ctx[i].dec_ctx);
+            }
+            if (ofmt_ctx && ofmt_ctx->nb_streams > i && ofmt_ctx->streams[i] && stream_ctx && stream_ctx[i].enc_ctx)
+                avcodec_free_context(&stream_ctx[i].enc_ctx);
+            if (filter_ctx && filter_ctx[i].filter_graph)
+                avfilter_graph_free(&filter_ctx[i].filter_graph);
+        }
+        avformat_close_input(&ifmt_ctx);
+    }
+    
+    if (filter_ctx) {
+        LOGE("Freeing filter context...");
+        av_free(filter_ctx);
+    }
+    
+    if (stream_ctx) {
+        LOGE("Freeing stream context...");
+        av_free(stream_ctx);
+    }
+    
+    if (ofmt_ctx) {
+        if (!(ofmt_ctx->oformat->flags & AVFMT_NOFILE)) {
+            LOGE("Closing output file I/O...");
+            avio_closep(&ofmt_ctx->pb);
+        }
+        LOGE("Freeing output context...");
+        avformat_free_context(ofmt_ctx);
+    }
 
     if (ret < 0){
-        av_log(NULL, AV_LOG_ERROR, "Error occurred: %s\n", av_err2str(ret));
-        LOGE("Error occurred: %s\n", av_err2str(ret));
+        LOGE("ERROR: downloadFileAAc failed with error: %s (%d)", av_err2str(ret), ret);
+        LOGE("========== downloadFileAAc FAILED ==========");
+        return 1;
     }
 
-    return ret ? 1 : 0;
+    LOGE("========== downloadFileAAc SUCCESS ==========");
+    LOGE("Total packets processed: %d", packet_count);
+    LOGE("Total bytes written: %lld", total_bytes_written);
+    return 0;
 
 }
 
@@ -711,9 +860,9 @@ int open_output_file(const char *filename) {
             }else if(dec_ctx->codec_type == AVMEDIA_TYPE_AUDIO){//音频采用AAC
                 LOGE("AVMEDIA_TYPE_AUDIO");
                 if(dec_ctx->codec_id == AV_CODEC_ID_PCM_ALAW){
-                    LOGE("the decode video type is PCMA~! ");
+                    LOGE("the decode audio type is PCMA~! ");
 //                    todo:要重采样PCMA为AAC格式。
-                    encoder = avcodec_find_decoder(AV_CODEC_ID_AAC);
+                    encoder = avcodec_find_encoder(AV_CODEC_ID_AAC);
                     if(!encoder){
                         LOGE("AAC encoder get failed !");
                     }else{
@@ -723,7 +872,7 @@ int open_output_file(const char *filename) {
                     encoder = avcodec_find_encoder(dec_ctx->codec_id);
                 }
                 if (!encoder) {
-                    LOGE("audio  encoder get failed !");
+                    LOGE("audio encoder get failed !");
                 }
             }else{
                 LOGE("UNKNOWN_TYPE_AUDIO");
@@ -815,24 +964,29 @@ int open_output_file(const char *filename) {
         }
 
     }
+    LOGE("Total output streams created: %d", ifmt_ctx->nb_streams);
     av_dump_format(ofmt_ctx, 0, filename, 1);
 
     if (!(ofmt_ctx->oformat->flags & AVFMT_NOFILE)) {
+        LOGE("Opening output file I/O: %s", filename);
         ret = avio_open(&ofmt_ctx->pb, filename, AVIO_FLAG_WRITE);
         if (ret < 0) {
-            av_log(NULL, AV_LOG_ERROR, "Could not open output file '%s'", filename);
-            LOGE("Could not open output file '%s'", filename);
+            LOGE("ERROR: Could not open output file '%s', error: %s (%d)", filename, av_err2str(ret), ret);
             return ret;
         }
+        LOGE("Output file I/O opened successfully");
+    } else {
+        LOGE("Output format does not require file I/O");
     }
 
     /* init muxer, write output file header */
+    LOGE("Writing output file header in open_output_file...");
     ret = avformat_write_header(ofmt_ctx, NULL);
     if (ret < 0) {
-        av_log(NULL, AV_LOG_ERROR, "Error occurred when opening output file\n");
-        LOGE("Error occurred when opening output file\n");
+        LOGE("ERROR: Failed to write output file header, error: %s (%d)", av_err2str(ret), ret);
         return ret;
     }
+    LOGE("Output file header written successfully in open_output_file");
 
     return 0;
 }
@@ -854,7 +1008,7 @@ int encode_write_frame(AVFrame *filt_frame, unsigned int stream_index, int *got_
     if (!got_frame)
         got_frame = &got_frame_local;
 
-    LOGE(NULL, AV_LOG_INFO, "Encoding frame\n");
+    LOGI("Encoding frame\n");
 
     /* send frame to encoder */
     ret = avcodec_send_frame(enc_ctx, filt_frame);
@@ -906,7 +1060,7 @@ int encode_write_frame(AVFrame *filt_frame, unsigned int stream_index, int *got_
                              enc_ctx->time_base,
                              ofmt_ctx->streams[stream_index]->time_base);
 
-        LOGE(NULL, AV_LOG_DEBUG, "Muxing frame\n");
+        LOGI("Muxing frame\n");
         /* mux encoded frame */
         ret = av_interleaved_write_frame(ofmt_ctx, enc_pkt);
         av_packet_unref(enc_pkt);
@@ -924,7 +1078,7 @@ int filter_encode_write_frame(AVFrame *frame, unsigned int stream_index) {
     int ret;
     AVFrame *filt_frame;
 
-    LOGE(NULL, AV_LOG_INFO, "Pushing decoded frame to filters\n");
+    LOGI("Pushing decoded frame to filters\n");
     /* push the decoded frame into the filtergraph */
     ret = av_buffersrc_add_frame_flags(filter_ctx[stream_index].buffersrc_ctx,
                                        frame, 0);
@@ -940,7 +1094,7 @@ int filter_encode_write_frame(AVFrame *frame, unsigned int stream_index) {
             ret = AVERROR(ENOMEM);
             break;
         }
-        LOGE(NULL, AV_LOG_INFO, "Pulling filtered frame from filters\n");
+        LOGI("Pulling filtered frame from filters\n");
         ret = av_buffersink_get_frame(filter_ctx[stream_index].buffersink_ctx,
                                       filt_frame);
         if (ret < 0) {
@@ -972,7 +1126,7 @@ int flush_encoder(unsigned int stream_index) {
         return 0;
 
     while (1) {
-        LOGE(NULL, AV_LOG_INFO, "Flushing stream #%u encoder\n", stream_index);
+        LOGI("Flushing stream #%u encoder\n", stream_index);
         ret = encode_write_frame(NULL, stream_index, &got_frame);
         if (ret < 0)
             break;
@@ -1000,11 +1154,12 @@ Java_com_jdpxiaoming_ffmpeg_1cmd_FFmpegCmd_dump_1Rtsp_1h265(JNIEnv *env, jclass 
 int write_output_file_header(AVFormatContext *output_format_context)
 {
     int error;
+    LOGE("write_output_file_header called");
     if ((error = avformat_write_header(output_format_context, NULL)) < 0) {
-        fprintf(stderr, "Could not write output file header (error '%s')\n",
-                av_err2str(error));
+        LOGE("ERROR: Could not write output file header, error: %s (%d)", av_err2str(error), error);
         return error;
     }
+    LOGE("write_output_file_header succeeded");
     return 0;
 }
 

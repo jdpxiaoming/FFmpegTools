@@ -90,9 +90,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         //转化flv的地址.
-        binding?.flvEt?.setText("https://gb-ct-shanghai-g7-001.ovopark.com:5081/rtsp/10434457-c440-4a3d-8601-e169e4670b2f.flv");
+        binding?.flvEt?.setText("https://ds-edge-shanghai-tg1-001.ovopark.com:5582/rtsp/cf58b6f9-f3e0-4ff0-bef1-ec24edc32ee3.flv");
         //转化rtsp（hevc)的地址
-        binding?.rtspEt?.setText("rtsp://101.227.52.49:2937/gb28181/10434457-c440-4a3d-8601-e169e4670b2f");
+        binding?.rtspEt?.setText("rtsp://221.181.75.22:5555/rtsp/cf58b6f9-f3e0-4ff0-bef1-ec24edc32ee3");
     }
 
 
@@ -151,7 +151,7 @@ class MainActivity : AppCompatActivity() {
         //flv测试ok.
 //        String input = "rtsp://47.108.81.159:5555/rtsp/e8f98226-5263-472c-8bbc-e3ec06c7ab1d";
         val input = binding?.flvEt?.text.toString();
-        val output = File(Environment.getExternalStorageDirectory(), "/poe/output63.mp4").absolutePath
+        val output = File(Environment.getExternalStorageDirectory(), "/Download/output63.mp4").absolutePath
         FFmpegCmd.dump_stream(input, output)
     }
 
@@ -163,7 +163,7 @@ class MainActivity : AppCompatActivity() {
         Log.i(TAG, "Java#dumpRtspToFlv~start~")
         //flv测试ok.
         val input = binding?.rtspEt?.text.toString();
-        val output = File(Environment.getExternalStorageDirectory(), "/poe/output73.mp4").absolutePath
+        val output = File(Environment.getExternalStorageDirectory(), "/Download/output73.mp4").absolutePath
         FFmpegCmd.dump_Rtsp_h265(input, output)
     }
 
@@ -174,7 +174,7 @@ class MainActivity : AppCompatActivity() {
         Log.i(TAG,"addWaterMark~start~!")
         val inputVideo = "/storage/emulated/0/OvoparkVideo/video_1636700501191.mp4";
         val inputWaterPic = "/storage/emulated/0/OvoparkVideo/tuya.png"
-        val output = File(Environment.getExternalStorageDirectory(), "/poe/output65.mp4").absolutePath
+        val output = File(Environment.getExternalStorageDirectory(), "/Download/output65.mp4").absolutePath
 
         val commands: Array<String?>? = FFmpegFactory.addWaterMark(inputWaterPic,inputVideo, output)
         var commandStr = ""

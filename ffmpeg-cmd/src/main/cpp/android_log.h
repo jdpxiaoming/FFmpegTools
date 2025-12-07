@@ -38,6 +38,8 @@ static int use_log_report = 0;
 
 #define LOGE(format, ...)  __android_log_print(ANDROID_LOG_ERROR, FF_LOG_TAG, format, ##__VA_ARGS__)
 #define LOGI(format, ...)  __android_log_print(ANDROID_LOG_INFO,  FF_LOG_TAG, format, ##__VA_ARGS__)
+#define LOGD(format, ...)  __android_log_print(ANDROID_LOG_DEBUG, FF_LOG_TAG, format, ##__VA_ARGS__)
+#define LOGW(format, ...)  __android_log_print(ANDROID_LOG_WARN,  FF_LOG_TAG, format, ##__VA_ARGS__)
 
 
 /*belown printf info*/
