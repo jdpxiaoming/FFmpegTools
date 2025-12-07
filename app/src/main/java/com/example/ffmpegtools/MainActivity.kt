@@ -70,7 +70,7 @@ class MainActivity : AppCompatActivity() {
      * 初始化urls.
      */
     private fun initViews() {
-        val inputPath = "http://113.31.102.114:5581/rtsp/9c137ab8-dde5-4342-9aa0-6ad29a862a9a.flv"
+        val inputPath = "rtsp://221.181.75.22:5555/rtsp/cf58b6f9-f3e0-4ff0-bef1-ec24edc32ee3"
         val outputPath = Environment.getExternalStorageDirectory().absolutePath + "/Download/1117.mp4"
         val output = File(outputPath)
         if (output.exists()) {
@@ -78,7 +78,7 @@ class MainActivity : AppCompatActivity() {
         }
         //cmds for ffmpeg flv->mp4.
         var commands: Array<String?>? = null // FFmpegFactory.buildRtsp2Mp4(inputPath,outputPath);
-        commands = FFmpegFactory.buildFlv2Mp4(inputPath, outputPath)
+        commands = FFmpegFactory.buildRtsp2Mp4(inputPath,outputPath);//FFmpegFactory.buildFlv2Mp4(inputPath, outputPath)
 
         commands?.let {
             var jpsb:StringBuffer = StringBuffer();
@@ -110,16 +110,15 @@ class MainActivity : AppCompatActivity() {
      * @param view
      */
     fun videoTransform(view: View?) {
-        val inputPath = "http://113.31.102.114:7781/rtsp/499eff6b-2a91-4b54-945a-c7ea6c39d7bd.mp4"
-        val outputPath = Environment.getExternalStorageDirectory().absolutePath + "/Download/20220531.mp4"
+        val inputPath = "rtsp://221.181.75.22:5555/rtsp/cf58b6f9-f3e0-4ff0-bef1-ec24edc32ee3"
+        val outputPath = Environment.getExternalStorageDirectory().absolutePath + "/Download/20251207rtsp01.mp4"
         val output = File(outputPath)
         if (output.exists()) {
             output.delete()
         }
         //cmds for ffmpeg flv->mp4.
         var commands: Array<String?>? = null // FFmpegFactory.buildRtsp2Mp4(inputPath,outputPath);
-//        commands = FFmpegFactory.buildFlv2Mp4(inputPath, outputPath)
-        commands = FFmpegFactory.buildSimple(inputPath, outputPath)
+        commands = FFmpegFactory.buildRtsp2Mp4(inputPath, outputPath)
         FFmpegUtil.getInstance().enQueueTask(commands, 0, object : onCallBack {
             override fun onStart() {
                 Log.i(TAG, " onStart2 # ")

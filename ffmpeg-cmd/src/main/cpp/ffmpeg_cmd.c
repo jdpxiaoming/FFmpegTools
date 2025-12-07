@@ -549,17 +549,60 @@ int downloadFileAAc(const char* input, const char* output){
     
     //初始化过滤器
     /* Initialize the resampler to be able to convert audio sample formats. */
+    // 找到音频流的索引
+    LOGE("Searching for audio stream...");
+    AVCodecContext *input_audio_ctx = NULL;
+    AVCodecContext *output_audio_ctx = NULL;
+    for (i = 0; i < ifmt_ctx->nb_streams; i++) {
+        LOGE("Checking stream %u: dec_ctx=%p, codec_type=%d", i, 
+             stream_ctx ? stream_ctx[i].dec_ctx : NULL,
+             stream_ctx && stream_ctx[i].dec_ctx ? stream_ctx[i].dec_ctx->codec_type : -1);
+        if (stream_ctx && stream_ctx[i].dec_ctx && 
+            stream_ctx[i].dec_ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
+            input_audio_ctx = stream_ctx[i].dec_ctx;
+            LOGE("Found audio decoder context at index %u", i);
+            if (stream_ctx[i].enc_ctx) {
+                output_audio_ctx = stream_ctx[i].enc_ctx;
+                LOGE("Found audio encoder context at index %u", i);
+            } else {
+                LOGE("WARNING: Audio encoder context is NULL at index %u", i);
+            }
+            break;
+        }
+    }
+    
+    if (!input_audio_ctx) {
+        LOGE("ERROR: Could not find audio decoder context");
+        ret = AVERROR_STREAM_NOT_FOUND;
+        goto end;
+    }
+    
+    if (!output_audio_ctx) {
+        LOGE("ERROR: Could not find audio encoder context");
+        ret = AVERROR_STREAM_NOT_FOUND;
+        goto end;
+    }
+    
     LOGE("Initializing resampler...");
-    if (init_resampler(ifmt_ctx, ofmt_ctx, &resample_context)) {
+    LOGE("Input audio: sample_rate=%d, sample_fmt=%d, channels=%d", 
+         input_audio_ctx->sample_rate, input_audio_ctx->sample_fmt, 
+         input_audio_ctx->ch_layout.nb_channels);
+    LOGE("Output audio: sample_rate=%d, sample_fmt=%d, channels=%d", 
+         output_audio_ctx->sample_rate, output_audio_ctx->sample_fmt, 
+         output_audio_ctx->ch_layout.nb_channels);
+    
+    if (init_resampler(input_audio_ctx, output_audio_ctx, &resample_context)) {
         LOGE("ERROR: Failed to initialize resampler");
+        ret = AVERROR_UNKNOWN;
         goto end;
     }
     LOGE("Resampler initialized successfully");
     
     /* Initialize the FIFO buffer to store audio samples to be encoded. */
     LOGE("Initializing FIFO buffer...");
-    if (init_fifo(&fifo, ofmt_ctx)) {
+    if (init_fifo(&fifo, output_audio_ctx)) {
         LOGE("ERROR: Failed to initialize FIFO buffer");
+        ret = AVERROR_UNKNOWN;
         goto end;
     }
     LOGE("FIFO buffer initialized successfully");
@@ -924,13 +967,20 @@ int open_output_file(const char *filename) {
             }
 
             /* 打开输出编解码器，灯下面用 */
+            if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
+                LOGE("Opening video encoder for stream #%u (codec: %s, width: %d, height: %d, pix_fmt: %d)", 
+                     i, encoder->name, enc_ctx->width, enc_ctx->height, enc_ctx->pix_fmt);
+            } else {
+                LOGE("Opening audio encoder for stream #%u (codec: %s, sample_rate: %d, channels: %d, sample_fmt: %d)", 
+                     i, encoder->name, enc_ctx->sample_rate, enc_ctx->ch_layout.nb_channels, enc_ctx->sample_fmt);
+            }
             ret = avcodec_open2(enc_ctx, encoder, NULL);
 
             if (ret < 0) {
-                av_log(NULL, AV_LOG_ERROR, "Cannot open video encoder for stream #%u\n", i);
-                LOGE("Cannot open video encoder for stream #%u\n", i);
+                LOGE("ERROR: Cannot open encoder for stream #%u, error: %s (%d)", i, av_err2str(ret), ret);
                 return ret;
             }
+            LOGE("Encoder opened successfully for stream #%u", i);
             //配置输出参数信息.
             ret = avcodec_parameters_from_context(out_stream->codecpar, enc_ctx);
             if (ret < 0) {
@@ -941,11 +991,17 @@ int open_output_file(const char *filename) {
             if (ofmt_ctx->oformat->flags & AVFMT_GLOBALHEADER)
                 enc_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
-//            out_stream->time_base = enc_ctx->time_base;
-
             //设置输出流的time base.
-            out_stream->time_base.den = dec_ctx->sample_rate;
-            out_stream->time_base.num = 1;
+            if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
+                // 视频流使用编码器的time_base
+                out_stream->time_base = enc_ctx->time_base;
+                LOGE("Stream %u (video): time_base set to %d/%d", i, out_stream->time_base.num, out_stream->time_base.den);
+            } else {
+                // 音频流使用sample_rate
+                out_stream->time_base.den = dec_ctx->sample_rate;
+                out_stream->time_base.num = 1;
+                LOGE("Stream %u (audio): time_base set to %d/%d", i, out_stream->time_base.num, out_stream->time_base.den);
+            }
 
             stream_ctx[i].enc_ctx = enc_ctx;
         } else if (dec_ctx->codec_type == AVMEDIA_TYPE_UNKNOWN) {
@@ -1195,6 +1251,7 @@ int init_resampler(AVCodecContext *input_codec_context,AVCodecContext *output_co
     int error;
     AVChannelLayout out_ch_layout = {0}, in_ch_layout = {0};
 
+    LOGE("init_resampler: Starting resampler initialization");
     /*
      * Create a resampler context for the conversion.
      * Set the conversion parameters.
@@ -1205,13 +1262,13 @@ int init_resampler(AVCodecContext *input_codec_context,AVCodecContext *output_co
     // Copy channel layout from codec context
     error = av_channel_layout_copy(&out_ch_layout, &output_codec_context->ch_layout);
     if (error < 0) {
-        fprintf(stderr, "Could not copy output channel layout\n");
+        LOGE("ERROR: Could not copy output channel layout, error: %s (%d)", av_err2str(error), error);
         return error;
     }
 
     error = av_channel_layout_copy(&in_ch_layout, &input_codec_context->ch_layout);
     if (error < 0) {
-        fprintf(stderr, "Could not copy input channel layout\n");
+        LOGE("ERROR: Could not copy input channel layout, error: %s (%d)", av_err2str(error), error);
         av_channel_layout_uninit(&out_ch_layout);
         return error;
     }
