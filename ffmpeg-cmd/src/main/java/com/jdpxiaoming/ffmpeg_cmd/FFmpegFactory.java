@@ -63,27 +63,35 @@ public class FFmpegFactory {
      *  flv->mp4  .
      * @param inputPath
      * @param outputPath  .
-     * @return
+     * @return 
      */
     public static String[] buildRtsp2Mp4(String inputPath ,String outputPath){
-        String[] commands = new String[15];
+        String[] commands = new String[19];
         commands[0] = "ffmpeg";
         commands[1] = "-rtsp_transport";
         commands[2] = "tcp";
         commands[3] = "-i";
         commands[4] = inputPath;
-        commands[5] = "-vcodec";
-        commands[6] = "copy";
-        //       -tag:v hvc1
-        commands[7] = "-tag:v";
-        commands[8] = "hvc1";
-
-        commands[9] = "-acodec";
-        commands[10] = "aac";
-        commands[11] = "-f";
-        commands[12] = "mp4";
-        commands[13] = "-y";//覆盖
-        commands[14] = outputPath;
+        // 显式映射视频和音频流，解决Android端"No streams to mux were specified"错误
+        // Windows端可能自动处理，但Android端需要显式指定
+        // -map 必须在 -i 之后，codec 参数之前
+        // 使用简化的map语法：0:0表示第一个输入文件的第一个流，0:1表示第二个流
+        commands[5] = "-map";
+        commands[6] = "0:0";  // 映射第一个输入文件的第一个流（视频）
+        commands[7] = "-map";
+        commands[8] = "0:1";  // 映射第一个输入文件的第二个流（音频）
+        // 使用 -c:v 和 -c:a 替代 -vcodec 和 -acodec（更标准的语法）
+        commands[9] = "-c:v";
+        commands[10] = "copy";
+        commands[11] = "-c:a";
+        commands[12] = "aac";
+        // 添加MP4格式优化参数，提高Android端兼容性
+        commands[13] = "-movflags";
+        commands[14] = "+faststart";  // 优化MP4文件，支持流式播放
+        commands[15] = "-f";
+        commands[16] = "mp4";
+        commands[17] = "-y";//覆盖
+        commands[18] = outputPath;
 
         return commands;
     }

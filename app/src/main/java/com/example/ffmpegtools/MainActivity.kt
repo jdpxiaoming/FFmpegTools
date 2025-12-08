@@ -7,14 +7,15 @@ import android.os.Build
 import androidx.core.content.PermissionChecker
 import android.content.pm.PackageManager
 import android.os.Environment
+import android.text.method.KeyListener
 import android.util.Log
 import android.view.View
 import android.widget.Toast
+import com.example.ffmpegtools.databinding.ActivityMainBinding
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegFactory
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegUtil
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegUtil.onCallBack
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegCmd
-import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
 
 /**
@@ -25,6 +26,7 @@ import java.io.File
  */
 class MainActivity : AppCompatActivity() {
 
+    var binding: ActivityMainBinding? = null
     companion object {
         private const val TAG = "MainActivity"
     }
@@ -36,7 +38,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding?.root)
         // Example of a call to a native method
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
             if (PermissionChecker.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PermissionChecker.PERMISSION_GRANTED) {
@@ -68,7 +71,7 @@ class MainActivity : AppCompatActivity() {
      * 初始化urls.
      */
     private fun initViews() {
-        val inputPath = "http://113.31.102.114:5581/rtsp/9c137ab8-dde5-4342-9aa0-6ad29a862a9a.flv"
+        val inputPath = "rtsp://221.181.75.22:5555/rtsp/cf58b6f9-f3e0-4ff0-bef1-ec24edc32ee3"
         val outputPath = Environment.getExternalStorageDirectory().absolutePath + "/Download/1117.mp4"
         val output = File(outputPath)
         if (output.exists()) {
@@ -76,7 +79,7 @@ class MainActivity : AppCompatActivity() {
         }
         //cmds for ffmpeg flv->mp4.
         var commands: Array<String?>? = null // FFmpegFactory.buildRtsp2Mp4(inputPath,outputPath);
-        commands = FFmpegFactory.buildFlv2Mp4(inputPath, outputPath)
+        commands = FFmpegFactory.buildRtsp2Mp4(inputPath,outputPath);//FFmpegFactory.buildFlv2Mp4(inputPath, outputPath)
 
         commands?.let {
             var jpsb:StringBuffer = StringBuffer();
@@ -84,13 +87,13 @@ class MainActivity : AppCompatActivity() {
                 jpsb.append("$str ")
             }
 
-            cmd_et.setText(jpsb.toString());
+            binding?.cmdEt?.setText(jpsb.toString());
         }
 
         //转化flv的地址.
-        flv_et.setText("http://114.55.169.80:5580/55000000000000000011100037300000-0.flv");
+        binding?.flvEt?.setText("https://ds-edge-shanghai-tg1-001.ovopark.com:5582/rtsp/cf58b6f9-f3e0-4ff0-bef1-ec24edc32ee3.flv");
         //转化rtsp（hevc)的地址
-        rtsp_et.setText("rtsp://47.108.81.159:5555/rtsp/94471817-9fff-4c05-9932-7153204ef970");
+        binding?.rtspEt?.setText("rtsp://221.181.75.22:5555/rtsp/cf58b6f9-f3e0-4ff0-bef1-ec24edc32ee3");
     }
 
 
@@ -108,16 +111,16 @@ class MainActivity : AppCompatActivity() {
      * @param view
      */
     fun videoTransform(view: View?) {
-        val inputPath = "http://113.31.102.114:7781/rtsp/499eff6b-2a91-4b54-945a-c7ea6c39d7bd.mp4"
-        val outputPath = Environment.getExternalStorageDirectory().absolutePath + "/Download/20220531.mp4"
+        val inputPath = "rtsp://221.181.75.22:5555/rtsp/cf58b6f9-f3e0-4ff0-bef1-ec24edc32ee3"
+        val outputPath = Environment.getExternalStorageDirectory().absolutePath + "/Download/20251207rtsp01.mp4"
         val output = File(outputPath)
         if (output.exists()) {
             output.delete()
         }
         //cmds for ffmpeg flv->mp4.
         var commands: Array<String?>? = null // FFmpegFactory.buildRtsp2Mp4(inputPath,outputPath);
-//        commands = FFmpegFactory.buildFlv2Mp4(inputPath, outputPath)
-        commands = FFmpegFactory.buildSimple(inputPath, outputPath)
+        commands = FFmpegFactory.buildRtsp2Mp4(inputPath, outputPath)
+        Log.e(TAG, "videoTransform cmds:===>> " + commands?.joinToString(" "))
         FFmpegUtil.getInstance().enQueueTask(commands, 0, object : onCallBack {
             override fun onStart() {
                 Log.i(TAG, " onStart2 # ")
@@ -148,8 +151,8 @@ class MainActivity : AppCompatActivity() {
         Log.i(TAG, "Java#dumpFlv~start~")
         //flv测试ok.
 //        String input = "rtsp://47.108.81.159:5555/rtsp/e8f98226-5263-472c-8bbc-e3ec06c7ab1d";
-        val input = flv_et.text.toString();
-        val output = File(Environment.getExternalStorageDirectory(), "/poe/output63.mp4").absolutePath
+        val input = binding?.flvEt?.text.toString();
+        val output = File(Environment.getExternalStorageDirectory(), "/Download/output63.mp4").absolutePath
         FFmpegCmd.dump_stream(input, output)
     }
 
@@ -160,8 +163,8 @@ class MainActivity : AppCompatActivity() {
     fun dumpRtspToFlv(view: View?) {
         Log.i(TAG, "Java#dumpRtspToFlv~start~")
         //flv测试ok.
-        val input = rtsp_et.text.toString();
-        val output = File(Environment.getExternalStorageDirectory(), "/poe/output73.mp4").absolutePath
+        val input = binding?.rtspEt?.text.toString();
+        val output = File(Environment.getExternalStorageDirectory(), "/Download/output73.mp4").absolutePath
         FFmpegCmd.dump_Rtsp_h265(input, output)
     }
 
@@ -172,7 +175,7 @@ class MainActivity : AppCompatActivity() {
         Log.i(TAG,"addWaterMark~start~!")
         val inputVideo = "/storage/emulated/0/OvoparkVideo/video_1636700501191.mp4";
         val inputWaterPic = "/storage/emulated/0/OvoparkVideo/tuya.png"
-        val output = File(Environment.getExternalStorageDirectory(), "/poe/output65.mp4").absolutePath
+        val output = File(Environment.getExternalStorageDirectory(), "/Download/output65.mp4").absolutePath
 
         val commands: Array<String?>? = FFmpegFactory.addWaterMark(inputWaterPic,inputVideo, output)
         var commandStr = ""
