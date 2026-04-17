@@ -4,6 +4,15 @@
 
 > use this library you can do all the things with ffmepg ex: video crop ,video filter ,video stream dump and so on .
 
+
+
+# my environment. 
+- Mac Tahoe 26.4.2
+- FFmpeg 7.1.2
+- Android Studio Panda2
+- support 16KB page size.  
+- download flv/rtsp to mp4. 
+
 ####  use ffmpeg as the binary file use commands params to run main funcition , picture and videos acitons as you licke.
 
 - [x] Transcode flv->mp4
