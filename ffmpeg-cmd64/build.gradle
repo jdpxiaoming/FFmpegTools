@@ -7,6 +7,15 @@ android {
 
     namespace "com.poe.ffmpeg_cmd64"
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
     defaultConfig {
         minSdkVersion MIN_SDK as int
         targetSdkVersion TRAGET_SDK as int  //29会无法读取内存卡.
@@ -29,10 +38,6 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
-    }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
     }
 
     externalNativeBuild {

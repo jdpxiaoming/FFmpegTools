@@ -7,15 +7,14 @@ import android.os.Build
 import androidx.core.content.PermissionChecker
 import android.content.pm.PackageManager
 import android.os.Environment
-import android.text.method.KeyListener
 import android.util.Log
 import android.view.View
 import android.widget.Toast
-import com.example.ffmpegtools.databinding.ActivityMainBinding
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegFactory
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegUtil
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegUtil.onCallBack
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegCmd
+import com.example.ffmpegtools.databinding.ActivityMainBinding
 import java.io.File
 
 /**
@@ -26,7 +25,8 @@ import java.io.File
  */
 class MainActivity : AppCompatActivity() {
 
-    var binding: ActivityMainBinding? = null
+    private lateinit var binding: ActivityMainBinding
+
     companion object {
         private const val TAG = "MainActivity"
     }
@@ -39,7 +39,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding?.root)
+        setContentView(binding.root)
         // Example of a call to a native method
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
             if (PermissionChecker.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PermissionChecker.PERMISSION_GRANTED) {
@@ -87,13 +87,13 @@ class MainActivity : AppCompatActivity() {
                 jpsb.append("$str ")
             }
 
-            binding?.cmdEt?.setText(jpsb.toString());
+            binding.cmdEt.setText(jpsb.toString());
         }
 
         //转化flv的地址.
-        binding?.flvEt?.setText("https://ds-edge-shanghai-tg1-001.ovopark.com:5582/rtsp/cf58b6f9-f3e0-4ff0-bef1-ec24edc32ee3.flv");
+        binding.flvEt.setText("https://ds-edge-shanghai-tg1-001.ovopark.com:5582/rtsp/cf58b6f9-f3e0-4ff0-bef1-ec24edc32ee3.flv");
         //转化rtsp（hevc)的地址
-        binding?.rtspEt?.setText("rtsp://221.181.75.22:5555/rtsp/cf58b6f9-f3e0-4ff0-bef1-ec24edc32ee3");
+        binding.rtspEt.setText("rtsp://221.181.75.22:5555/rtsp/cf58b6f9-f3e0-4ff0-bef1-ec24edc32ee3");
     }
 
 
@@ -151,7 +151,7 @@ class MainActivity : AppCompatActivity() {
         Log.i(TAG, "Java#dumpFlv~start~")
         //flv测试ok.
 //        String input = "rtsp://47.108.81.159:5555/rtsp/e8f98226-5263-472c-8bbc-e3ec06c7ab1d";
-        val input = binding?.flvEt?.text.toString();
+        val input = binding.flvEt.text.toString();
         val output = File(Environment.getExternalStorageDirectory(), "/Download/output63.mp4").absolutePath
         FFmpegCmd.dump_stream(input, output)
     }
@@ -163,7 +163,7 @@ class MainActivity : AppCompatActivity() {
     fun dumpRtspToFlv(view: View?) {
         Log.i(TAG, "Java#dumpRtspToFlv~start~")
         //flv测试ok.
-        val input = binding?.rtspEt?.text.toString();
+        val input = binding.rtspEt.text.toString();
         val output = File(Environment.getExternalStorageDirectory(), "/Download/output73.mp4").absolutePath
         FFmpegCmd.dump_Rtsp_h265(input, output)
     }

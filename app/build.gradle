@@ -5,10 +5,15 @@ android {
     compileSdkVersion COMPILE_TOOL_API as int
     buildToolsVersion COMPILE_TOOL_API_VERSION
 
+    namespace "com.example.ffmpegtools"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
     }
 
     defaultConfig {
@@ -29,11 +34,6 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
-    }
-
-    compileOptions {
-        sourceCompatibility 1.8
-        targetCompatibility 1.8
     }
 
     buildFeatures {

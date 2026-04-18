@@ -6,6 +6,14 @@ android {
     buildToolsVersion COMPILE_TOOL_API_VERSION
 
     namespace "com.jdpxiaoming.ffmpeg_cmd"
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
 
     defaultConfig {
         minSdkVersion MIN_SDK as int
