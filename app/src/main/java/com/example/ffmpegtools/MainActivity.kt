@@ -71,8 +71,8 @@ class MainActivity : AppCompatActivity() {
      * 初始化urls.
      */
     private fun initViews() {
-        val inputPath = "rtsp://221.181.75.22:5555/rtsp/cf58b6f9-f3e0-4ff0-bef1-ec24edc32ee3"
-        val outputPath = Environment.getExternalStorageDirectory().absolutePath + "/Download/1117.mp4"
+        val inputPath = "http://ds-ctmu-ningbo-g1-001.ovopark.com:5581/rtsp/3ee68d4b-7859-4343-bfa1-99d354100636.flv"
+        val outputPath = Environment.getExternalStorageDirectory().absolutePath + "/Download/1118.mp4"
         val output = File(outputPath)
         if (output.exists()) {
             output.delete()
@@ -91,9 +91,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         //转化flv的地址.
-        binding.flvEt.setText("https://ds-edge-shanghai-tg1-001.ovopark.com:5582/rtsp/cf58b6f9-f3e0-4ff0-bef1-ec24edc32ee3.flv");
+        binding.flvEt.setText("http://ds-ctmu-ningbo-g1-001.ovopark.com:5581/rtsp/3ee68d4b-7859-4343-bfa1-99d354100636.flv");
         //转化rtsp（hevc)的地址
-        binding.rtspEt.setText("rtsp://221.181.75.22:5555/rtsp/cf58b6f9-f3e0-4ff0-bef1-ec24edc32ee3");
+        binding.rtspEt.setText("http://ds-ctmu-ningbo-g1-001.ovopark.com:5581/rtsp/3ee68d4b-7859-4343-bfa1-99d354100636.flv");
     }
 
 
@@ -111,7 +111,7 @@ class MainActivity : AppCompatActivity() {
      * @param view
      */
     fun videoTransform(view: View?) {
-        val inputPath = "rtsp://221.181.75.22:5555/rtsp/cf58b6f9-f3e0-4ff0-bef1-ec24edc32ee3"
+        val inputPath = "http://ds-ctmu-ningbo-g1-001.ovopark.com:5581/rtsp/3ee68d4b-7859-4343-bfa1-99d354100636.flv"
         val outputPath = Environment.getExternalStorageDirectory().absolutePath + "/Download/20251207rtsp01.mp4"
         val output = File(outputPath)
         if (output.exists()) {
@@ -119,7 +119,8 @@ class MainActivity : AppCompatActivity() {
         }
         //cmds for ffmpeg flv->mp4.
         var commands: Array<String?>? = null // FFmpegFactory.buildRtsp2Mp4(inputPath,outputPath);
-        commands = FFmpegFactory.buildRtsp2Mp4(inputPath, outputPath)
+//        commands = FFmpegFactory.buildRtsp2Mp4(inputPath, outputPath)
+        commands = FFmpegFactory.buildFlv2Mp4(inputPath, outputPath)
         Log.e(TAG, "videoTransform cmds:===>> " + commands?.joinToString(" "))
         FFmpegUtil.getInstance().enQueueTask(commands, 0, object : onCallBack {
             override fun onStart() {

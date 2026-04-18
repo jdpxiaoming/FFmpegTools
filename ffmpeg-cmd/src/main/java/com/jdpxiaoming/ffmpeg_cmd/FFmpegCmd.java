@@ -11,7 +11,7 @@ public class FFmpegCmd
 
     static
     {
-        System.loadLibrary("ffmpeg-cmd");
+        System.loadLibrary("ijkffmpegcmd");
     }
 
     private static OnCmdExecListener sOnCmdExecListener;
