@@ -5,6 +5,8 @@ android {
     compileSdkVersion COMPILE_TOOL_API as int
     buildToolsVersion COMPILE_TOOL_API_VERSION
 
+    namespace "com.jdpxiaoming.ffmpeg_cmd"
+
     defaultConfig {
         minSdkVersion MIN_SDK as int
         targetSdkVersion TRAGET_SDK as int  //29会无法读取内存卡.
@@ -50,7 +52,7 @@ dependencies {
 }
 
 //上传maven或者私有库中.
-uploadArchives{
-
-}
+//uploadArchives{
+//
+//}
 apply from: new File(rootProject.projectDir, "tools/gradle-on-demand.gradle");

@@ -5,6 +5,7 @@ android {
     compileSdkVersion COMPILE_TOOL_API as int
     buildToolsVersion COMPILE_TOOL_API_VERSION
 
+    namespace "com.poe.ffmpeg_cmd64"
 
     defaultConfig {
         minSdkVersion MIN_SDK as int
@@ -53,8 +54,8 @@ dependencies {
 }
 
 //上传maven或者私有库中.
-uploadArchives{
-
-}
+//uploadArchives{
+//
+//}
 
 apply from: new File(rootProject.projectDir, "tools/gradle-on-demand.gradle");

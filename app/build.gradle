@@ -1,10 +1,15 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
 
 android {
     compileSdkVersion COMPILE_TOOL_API as int
     buildToolsVersion COMPILE_TOOL_API_VERSION
+
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
 
     defaultConfig {
         applicationId "com.example.ffmpegtools"
@@ -30,6 +35,10 @@ android {
         sourceCompatibility 1.8
         targetCompatibility 1.8
     }
+
+    buildFeatures {
+        viewBinding true
+    }
 }
 
 dependencies {
@@ -46,7 +55,4 @@ dependencies {
     implementation project(path: ':ffmpeg-cmd64')
     implementation "androidx.core:core-ktx:1.6.0-rc01"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-}
-repositories {
-    mavenCentral()
 }
