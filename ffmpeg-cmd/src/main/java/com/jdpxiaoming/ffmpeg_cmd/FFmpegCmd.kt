@@ -1,25 +1,25 @@
-package com.jdpxiaoming.ffmpeg_cmd;
+package com.jdpxiaoming.ffmpeg_cmd
 
 /**
  * ffmpeg tools.
  * @author jdpxiaoming 2020/05/16
  */
-public class FFmpegCmd
-{
+object FFmpegCmd {
+    private const val TAG = "FFmpegCmd"
 
-    private static final String TAG ="FFmpegCmd";
-
-    static
-    {
-        System.loadLibrary("ijkffmpegcmd");
+    init {
+        System.loadLibrary("ijkffmpegcmd")
     }
 
-    private static OnCmdExecListener sOnCmdExecListener;
-    private static long sDuration = 0 ;
+    private var sOnCmdExecListener: OnCmdExecListener? = null
+    private var sDuration: Long = 0
 
-    public static native int exec(int argc, String[] argv);
+    // JNI still binds to the legacy static Java API shape.
+    @JvmStatic
+    external fun exec(argc: Int, argv: Array<String?>?): Int
 
-    public static native void exit();
+    @JvmStatic
+    external fun exit()
 
     /**
      * 手动c代码调用api，非cmd模式.
@@ -27,46 +27,47 @@ public class FFmpegCmd
      * @param output
      * @return
      */
-    public static  native int dump_stream(String input, String output);
-    public static  native int dump_Rtsp_h265(String input, String output);
+    @JvmStatic
+    external fun dump_stream(input: String?, output: String?): Int
+
+    @JvmStatic
+    external fun dump_Rtsp_h265(input: String?, output: String?): Int
 
     /**
-     * this method invoked child thread , please use {@link FFmpegUtil#exec(String[], FFmpegUtil.onCallBack)}
+     * this method invoked child thread , please use [FFmpegUtil.exec]
      * @param cmds
      * @param duration
      * @param listener
      */
-    public static void exec(String[] cmds, long duration, OnCmdExecListener listener) {
-        sOnCmdExecListener = listener;
-        sDuration = duration;
+    @JvmStatic
+    fun exec(cmds: Array<String?>, duration: Long, listener: OnCmdExecListener?) {
+        sOnCmdExecListener = listener
+        sDuration = duration
 
-        exec(cmds.length, cmds);
+        exec(cmds.size, cmds)
     }
 
     /**
-     * this method invoked child thread , please use {@link FFmpegUtil#exec(String[], FFmpegUtil.onCallBack)}
+     * this method invoked child thread , please use [FFmpegUtil.exec]
      * @param cmds
      * @param listener
      */
-    public static void exec(String[] cmds, OnCmdExecListener listener) {
-        sOnCmdExecListener = listener;
-        exec(cmds.length, cmds);
+    @JvmStatic
+    fun exec(cmds: Array<String?>, listener: OnCmdExecListener?) {
+        sOnCmdExecListener = listener
+        exec(cmds.size, cmds)
     }
 
 
-    public static void onExecuted(int ret)
-    {
-        FLog.i(TAG," onExecuted # "+ret);
-        if (sOnCmdExecListener != null)
-        {
-            if (ret == 0)
-            {
-                sOnCmdExecListener.onProgress(sDuration);
-                sOnCmdExecListener.onSuccess();
-            }
-            else
-            {
-                sOnCmdExecListener.onFailure();
+    @JvmStatic
+    fun onExecuted(ret: Int) {
+        FLog.i(TAG, " onExecuted # " + ret)
+        if (sOnCmdExecListener != null) {
+            if (ret == 0) {
+                sOnCmdExecListener!!.onProgress(sDuration.toFloat())
+                sOnCmdExecListener!!.onSuccess()
+            } else {
+                sOnCmdExecListener!!.onFailure()
             }
         }
     }
@@ -76,64 +77,66 @@ public class FFmpegCmd
      * jni invoked this method .
      * @param progress
      */
-    public static void onProgress(float progress)
-    {
-        FLog.i(TAG," onProgress # "+progress);
-        if (sOnCmdExecListener != null){
-            if (sDuration != 0){
-                sOnCmdExecListener.onProgress(progress / (sDuration / 1000) * 0.95f);
-            }else{
-                sOnCmdExecListener.onProgress(progress);
+    @JvmStatic
+    fun onProgress(progress: Float) {
+        FLog.i(TAG, " onProgress # " + progress)
+        if (sOnCmdExecListener != null) {
+            if (sDuration != 0L) {
+                sOnCmdExecListener!!.onProgress(progress / (sDuration / 1000) * 0.95f)
+            } else {
+                sOnCmdExecListener!!.onProgress(progress)
             }
         }
     }
 
     /**
-     *  task finish invoked.
+     * task finish invoked.
      * jni invoked this method when task is finished.
      */
-    public static void onComplete(){
-        FLog.i(TAG," onComplete ()# action done!");
-        if (sOnCmdExecListener != null){
-            sOnCmdExecListener.onComplete();
+    @JvmStatic
+    fun onComplete() {
+        FLog.i(TAG, " onComplete ()# action done!")
+        if (sOnCmdExecListener != null) {
+            sOnCmdExecListener!!.onComplete()
         }
     }
 
 
     /**
-     *  task finish invoked.
+     * task finish invoked.
      * jni invoked this method when task is finished.
      */
-    public static void onFailure(){
-        FLog.i(TAG," onFailure ()# action done!");
-        if (sOnCmdExecListener != null){
-            sOnCmdExecListener.onFailure();
+    @JvmStatic
+    fun onFailure() {
+        FLog.i(TAG, " onFailure ()# action done!")
+        if (sOnCmdExecListener != null) {
+            sOnCmdExecListener!!.onFailure()
         }
     }
 
     /**
      * stop下载任务回调.
      */
-    public static void onCancelFinish(){
-        FLog.i(TAG," onCancelFinish ()# action done!");
-        if (sOnCmdExecListener != null){
-            sOnCmdExecListener.onCancelFinish();
+    @JvmStatic
+    fun onCancelFinish() {
+        FLog.i(TAG, " onCancelFinish ()# action done!")
+        if (sOnCmdExecListener != null) {
+            sOnCmdExecListener!!.onCancelFinish()
         }
     }
 
-    public interface OnCmdExecListener {
-        void onSuccess();
+    interface OnCmdExecListener {
+        fun onSuccess()
 
-        void onFailure();
+        fun onFailure()
 
-        void onComplete();
+        fun onComplete()
 
-        void onProgress(float progress);
+        fun onProgress(progress: Float)
 
         /**
          * 取消完成.
          */
-        void onCancelFinish();
+        fun onCancelFinish()
     }
-
 }

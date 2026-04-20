@@ -89,7 +89,7 @@ void callJavaMethodCancelFinish(JNIEnv *env, jclass clazz) {
         return;
     }
     //获取方法ID (I)V指的是方法签名 通过javap -s -public FFmpegCmd 命令生成
-    jmethodID methodID = (*env)->GetStaticMethodID(env, clazz, "onComplete", "()V");
+    jmethodID methodID = (*env)->GetStaticMethodID(env, clazz, "onCancelFinish", "()V");
     if (methodID == NULL) {
         LOGE("---------------methodID isNULL---------------");
         return;

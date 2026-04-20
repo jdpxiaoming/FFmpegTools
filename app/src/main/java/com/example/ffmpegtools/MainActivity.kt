@@ -12,7 +12,7 @@ import android.view.View
 import android.widget.Toast
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegFactory
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegUtil
-import com.jdpxiaoming.ffmpeg_cmd.FFmpegUtil.onCallBack
+import com.jdpxiaoming.ffmpeg_cmd.FFmpegUtil.Callback
 import com.jdpxiaoming.ffmpeg_cmd.FFmpegCmd
 import com.example.ffmpegtools.databinding.ActivityMainBinding
 import java.io.File
@@ -102,7 +102,7 @@ class MainActivity : AppCompatActivity() {
      * @param view
      */
     fun stopRun(view: View?) {
-        FFmpegUtil.getInstance().stopTask()
+        FFmpegUtil.instance?.stopTask()
     }
 
 
@@ -122,7 +122,7 @@ class MainActivity : AppCompatActivity() {
 //        commands = FFmpegFactory.buildRtsp2Mp4(inputPath, outputPath)
         commands = FFmpegFactory.buildFlv2Mp4(inputPath, outputPath)
         Log.e(TAG, "videoTransform cmds:===>> " + commands?.joinToString(" "))
-        FFmpegUtil.getInstance().enQueueTask(commands, 0, object : onCallBack {
+        FFmpegUtil.instance?.enQueueTask(commands, 0, object : Callback {
             override fun onStart() {
                 Log.i(TAG, " onStart2 # ")
             }
@@ -183,7 +183,7 @@ class MainActivity : AppCompatActivity() {
         commands?.forEach { commandStr = "$commandStr $it" }
         Log.e(TAG,"FFmpeg cmds:===>> $commandStr")
 
-        FFmpegUtil.getInstance().enQueueTask(commands, 0, object : onCallBack {
+        FFmpegUtil.instance?.enQueueTask(commands, 0, object : Callback {
             override fun onStart() {
                 Log.i(TAG, " onStart2 # ")
             }
